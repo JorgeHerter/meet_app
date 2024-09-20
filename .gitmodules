@@ -1,0 +1,3 @@
+[submodule "meet"]
+	path = meet
+	url = https://github.com/JorgeHerter/meet_app.git
