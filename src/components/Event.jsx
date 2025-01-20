@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 const Event = ({ event }) => {
+
   const [showDetails, setShowDetails] = useState(false);
 
   // Toggle the details visibility

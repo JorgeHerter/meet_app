@@ -1,44 +1,47 @@
-
 import React from 'react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from '@testing-library/react';
 import CitySearch from '../components/CitySearch';
+import App from '../App';
+import { getEvents, extractLocations } from '../api';
 
-// Mock event data
+// Correctly mock the event data with valid date and location fields
 const mockEventData = [
-  { id: "abc123", summary: "Meeting with Berlin Team", location: "Berlin" },
-  { id: "def456", summary: "Meeting in New York", location: "New York" },
-  { id: "ghi789", summary: "Conference in Paris", location: "Paris" }
+  { id: 1, summary: 'Event 1', location: 'Berlin, Germany', date: '2025-02-25' },
+  { id: 2, summary: 'Event 2', location: 'Paris, France', date: '2025-02-26' },
+  { id: 3, summary: 'Event 3', location: 'New York, USA', date: '2025-02-27' },
+  { id: 4, summary: 'Event 4', location: 'London, UK', date: '2025-02-28' },
+  { id: 5, summary: 'Event 5', location: 'Tokyo, Japan', date: '2025-03-01' }
 ];
 
-// Placeholder for event fetching function (to be implemented based on actual data)
-const getEvents = async () => {
-  return mockEventData; // Returning mock data for now
-};
+// Mock the API response with the above events
+jest.mock('../api', () => ({
+  getEvents: jest.fn(),
+  extractLocations: jest.fn()
+}));
 
-// Placeholder for extracting locations from events (to be implemented based on actual data)
-const extractLocations = (events) => {
-  return events.map(event => event.location);
-};
-
-jest.setTimeout(10000); // Set a global timeout of 10 seconds for all tests
+// Mock the behavior of the functions to return predefined values
+beforeEach(() => {
+  getEvents.mockResolvedValue(mockEventData);
+  extractLocations.mockReturnValue(mockEventData.map(event => event.location));
+});
 
 describe('<CitySearch /> component', () => {
   test('renders text input', () => {
-    render(<CitySearch events={mockEventData} />);  // Pass events prop here
+    render(<CitySearch events={mockEventData} />); // Pass events prop here
     const cityTextBox = screen.getByRole('textbox');
     expect(cityTextBox).toBeInTheDocument();
     expect(cityTextBox).toHaveClass('city');
   });
 
   test('suggestions list is hidden by default', () => {
-    render(<CitySearch events={mockEventData} />);  // Pass events prop here
+    render(<CitySearch events={mockEventData} />); // Pass events prop here
     const suggestionList = screen.queryByRole('list');
     expect(suggestionList).not.toBeInTheDocument();
   });
 
   test('renders a list of suggestions when city textbox gains focus and user types', async () => {
-    render(<CitySearch events={mockEventData} />);  // Pass events prop here
+    render(<CitySearch events={mockEventData} />); // Pass events prop here
     const user = userEvent.setup();
     const cityTextBox = screen.getByRole('textbox');
     
@@ -57,8 +60,7 @@ describe('<CitySearch /> component', () => {
 
   test('updates list of suggestions correctly when user types in city textbox', async () => {
     const user = userEvent.setup();
-    const allEvents = await getEvents();
-    const allLocations = extractLocations(allEvents);
+    const allLocations = extractLocations(mockEventData); // Use the mocked locations
 
     render(<CitySearch events={mockEventData} allLocations={allLocations} />);
 
@@ -84,27 +86,41 @@ describe('<CitySearch /> component', () => {
 
   test('renders the suggestion text in the textbox upon clicking on the suggestion', async () => {
     const user = userEvent.setup();
-    const allEvents = await getEvents(); 
+    const allEvents = await getEvents();
     const allLocations = extractLocations(allEvents);
 
-    render(<CitySearch events={mockEventData} allLocations={allLocations} />);
-
+    render(<CitySearch
+      allLocations={allLocations}
+      setCurrentCity={() => { }} // You can mock this function if needed
+    />);
+    
     const cityTextBox = screen.getByRole('textbox');
     await user.type(cityTextBox, "Berlin");
 
-    // Wait for the suggestions list to appear
-    const suggestionListItems = await screen.findAllByRole('listitem');
-    
-    // Assume the first suggestion is "Berlin"
-    const BerlinGermanySuggestion = suggestionListItems[0];
+    // the suggestion's textContent looks like this: "Berlin, Germany"
+    const berlinGermanySuggestion = screen.getByText('Berlin, Germany');  // Simplified for this test
 
-    // Simulate a click on the "Berlin" suggestion
-    await user.click(BerlinGermanySuggestion);
+    await user.click(berlinGermanySuggestion);
 
-    // Check that the text in the textbox is now the clicked suggestion text
-    expect(cityTextBox).toHaveValue(BerlinGermanySuggestion.textContent);
+    expect(cityTextBox).toHaveValue(berlinGermanySuggestion.textContent);
+  });
+
+  describe('<CitySearch /> integration', () => {
+    test('renders suggestions list when the app is rendered.', async () => {
+      const user = userEvent.setup();
+      const AppComponent = render(<App />);
+
+      // Find the CitySearch component inside the App
+      const CitySearchDOM = AppComponent.container.querySelector('#city-search');
+      const cityTextBox = within(CitySearchDOM).queryByRole('textbox');
+      await user.click(cityTextBox);
+
+      // Wait for the mock events and locations to be loaded
+      const allLocations = extractLocations(mockEventData);
+
+      // Wait for the suggestion list to appear
+      const suggestionListItems = within(CitySearchDOM).queryAllByRole('listitem');
+      expect(suggestionListItems.length).toBe(allLocations.length + 1); // +1 for "See all cities"
+    });
   });
 });
-
-
-

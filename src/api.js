@@ -1,28 +1,42 @@
+
 // src/api.js
-
-
 import mockData from './mock-data';
 
-
 /**
+ * This function extracts locations from the events array.
+ * It takes the events array and maps over it to return an array of locations.
+ * It then removes duplicates using a Set and the spread operator.
  *
- * @param {*} events:
- * The following function should be in the “api.js” file.
- * This function takes an events array, then uses map to create a new array with only locations.
- * It will also remove all duplicates by creating another new array using the spread operator and spreading a Set.
- * The Set will remove all duplicates from the array.
+ * @param {*} events - Array of event objects
+ * @returns {Array} - Unique list of locations
  */
 export const extractLocations = (events) => {
-  const extractedLocations = events.map((event) => event.location);
-  const locations = [...new Set(extractedLocations)];
+  const extractedLocations = events.map((event) => event.location); // Map to extract locations
+  const locations = [...new Set(extractedLocations)]; // Remove duplicates using Set
   return locations;
 };
 
-
 /**
+ * This function fetches the list of all events.
+ * It returns the 'events' array from mockData.
  *
- * This function will fetch the list of all events
+ * @returns {Array} - Array of event objects
  */
+// src/api.js
+
 export const getEvents = async () => {
-  return mockData;
+  try {
+    const events = mockData[0]?.events;  // Access the events array
+
+    if (!Array.isArray(events)) {
+      throw new Error("Fetched events are not in expected array format");
+    }
+
+    return events;
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    return [];  // Return an empty array in case of any errors
+  }
 };
+
+

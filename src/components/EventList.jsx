@@ -1,18 +1,35 @@
+//src\components\EventList.jsx
 import React from 'react';
-import Event from "./Event";
+import Event from './Event'; // Import the Event component
 
-const EventList = ({ events }) => {
+const EventList = ({ events = [] }) => {
+  console.log(events); 
   return (
-    <ul id="event-list" data-testid="event-list">
-      {events ? 
-        events.map(event => (
-          <li key={event.id} data-testid="event-item">  {/* Wrap each event in an <li> element */}
-            <Event event={event} />
+    <ul 
+      id="event-list" 
+      data-testid="event-list"
+      role="list"
+    >
+      {events.length === 0 ? (
+        <p>No events available.</p> // Placeholder when no events exist
+      ) : (
+        events.map((event, index) => (
+          <li 
+            key={event.id || index}  // Use event.id or index as a fallback
+            data-testid="event-item"
+            role="listitem"
+          >
+            <Event event={event} />  // Pass the event object to the Event component
           </li>
-        )) : 
-        null}
+        ))
+      )}
     </ul>
   );
-}
+};
 
 export default EventList;
+
+
+
+
+
