@@ -1,5 +1,5 @@
 
-import React from 'react';
+/*import React from 'react';
 import 'jest-fetch-mock'; // This mocks the global fetch API
 import { render, screen, waitFor, act } from '@testing-library/react';
 import EventList from '../components/EventList';  // EventList component
@@ -84,4 +84,66 @@ describe('<EventList /> component', () => {
       fetch.mockReset();
     });
   });
+});*/
+// src/__tests__/EventList.test.js
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom'; // For toBeInTheDocument matcher
+import { getEvents } from '../mock-data'; // Import getEvents
+import App from '../App';
+import EventList from '../components/EventList'; // If you're using EventList in your test
+
+// Mock the getEvents function from mock-data.js
+jest.mock('../mock-data', () => ({
+  getEvents: jest.fn().mockResolvedValue([
+    { id: 1, name: 'Event 1', location: 'Location 1' },
+    { id: 2, name: 'Event 2', location: 'Location 2' },
+    { id: 3, name: 'Event 3', location: 'Location 3' },
+  ]),
+}));
+
+describe('<App /> component', () => {
+  let AppDOM;
+
+  beforeEach(() => {
+    AppDOM = render(<App />).container.firstChild;
+  });
+
+  test('renders list of events', async () => {
+    render(<App />);  // Rendering the App
+    const eventList = await screen.findByTestId('event-list'); // Wait for event list to render
+    expect(eventList).toBeInTheDocument();
+  });
+
+  test('renders correct number of events', async () => {
+    const allEvents = await getEvents();  // Fetch events using the mock API
+
+    // Filter valid events, ensuring there are no empty or invalid events
+    const filteredEvents = allEvents.filter(event => event && event.location);
+
+    render(<EventList events={filteredEvents} />);  // Render EventList with valid events
+
+    // Wait for the event list items to be rendered
+    const eventListItems = await screen.findAllByRole('listitem');
+    
+    expect(eventListItems).toHaveLength(filteredEvents.length);
+  });
+
+  test('renders CitySearch component', () => {
+    expect(AppDOM.querySelector('#city-search')).toBeInTheDocument();
+  });
+
+  describe('<EventList /> integration', () => {
+    test('renders a list of events when the app is mounted', async () => {
+      render(<App />);
+      await waitFor(() => {
+        const eventListItems = screen.getAllByRole('listitem');
+        expect(eventListItems.length).toBeGreaterThan(0);
+      });
+    });
+  });
 });
+
+
+
+

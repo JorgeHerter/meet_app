@@ -1,9 +1,9 @@
 //src\components\EventList.jsx
-import React from 'react';
+/*import React from 'react';
 import Event from './Event'; // Import the Event component
 
 const EventList = ({ events = [] }) => {
-  console.log(events); 
+  
   return (
     <ul 
       id="event-list" 
@@ -27,7 +27,40 @@ const EventList = ({ events = [] }) => {
   );
 };
 
+export default EventList;*/
+
+// src/components/EventList.jsx
+import React from 'react';
+import Event from './Event';
+
+const EventList = ({ events }) => {
+  // Filter out any invalid or empty events
+  const validEvents = events.filter(event => event && event.location);
+
+  return (
+    <ul id="event-list" data-testid="event-list">
+      {validEvents.length > 0 ? (
+        validEvents.map(event => (
+          <li key={event.id} role="listitem"> {/* Ensure each event is a list item */}
+            <Event event={event} />
+          </li>
+        ))
+      ) : (
+        <li>No events found</li>
+      )}
+    </ul>
+  );
+};
+
 export default EventList;
+
+
+
+
+
+
+
+
 
 
 

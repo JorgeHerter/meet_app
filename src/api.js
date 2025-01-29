@@ -26,8 +26,9 @@ export const extractLocations = (events) => {
 
 export const getEvents = async () => {
   try {
-    const events = mockData[0]?.events;  // Access the events array
+    const events = mockData?.[0]?.events;  // Use optional chaining for both mockData and mockData[0]
 
+    // Check if events exist and are in the expected array format
     if (!Array.isArray(events)) {
       throw new Error("Fetched events are not in expected array format");
     }
@@ -35,8 +36,15 @@ export const getEvents = async () => {
     return events;
   } catch (error) {
     console.error("Error fetching events:", error);
-    return [];  // Return an empty array in case of any errors
+    
+    // Optionally, log the error to an error reporting system
+    // logErrorToMonitoringSystem(error);
+
+    // Return an empty array in case of errors, or you can return a default set of mock events
+    return [];
   }
 };
+
+
 
 

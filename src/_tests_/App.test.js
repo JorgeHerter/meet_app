@@ -1,4 +1,4 @@
-import React from 'react';
+/*import React from 'react';
 import { render, within, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { getEvents } from '../api';
@@ -102,6 +102,87 @@ describe('<App /> component', () => {
       });
 
       expect(getEvents).toHaveBeenCalled();
+    });
+  });
+});*/
+// src/__tests__/App.test.js
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';  // Provides the "toBeInTheDocument" matcher
+import App from '../App';
+import { getEvents } from '../api';  // Import getEvents from the API
+
+// Mock the getEvents function to return mock events
+jest.mock('../api', () => ({
+  getEvents: jest.fn(),
+}));
+
+// Mock event data
+const mockEvents = [
+  { id: '1', summary: 'React Meetup', location: 'New York, USA', created: '2025-01-01T10:00:00.000Z', start: { dateTime: '2025-01-15T08:00:00+01:00' } },
+  { id: '2', summary: 'Vue.js Meetup', location: 'London, UK', created: '2025-01-05T10:00:00.000Z', start: { dateTime: '2025-01-20T09:00:00+01:00' } },
+  { id: '3', summary: 'Angular Meetup', location: 'Berlin, Germany', created: '2025-01-10T10:00:00.000Z', start: { dateTime: '2025-01-22T08:00:00+01:00' } },
+];
+
+beforeEach(() => {
+  // Mock the API call to return the mock events
+  getEvents.mockResolvedValue(mockEvents);
+});
+
+// Helper function to render the App and wait for the event list
+const renderAppAndWaitForEvents = async () => {
+  render(<App />);
+  // Wait for the event list to be populated
+  await waitFor(() => screen.getByTestId('event-list'));
+};
+
+describe('<App /> component', () => {
+  test('renders list of events', async () => {
+    await renderAppAndWaitForEvents();  // Render and wait for event list to appear
+
+    // Ensure the event list element is in the document
+    expect(screen.getByTestId('event-list')).toBeInTheDocument();
+
+    // Ensure the correct number of events are displayed (3 in this case)
+    const eventItems = screen.getAllByRole('listitem');
+    expect(eventItems.length).toBe(mockEvents.length);
+
+    // Ensure that specific event details are present
+    expect(screen.getByText('React Meetup')).toBeInTheDocument();
+    expect(screen.getByText('New York, USA')).toBeInTheDocument();
+    expect(screen.getByText('Vue.js Meetup')).toBeInTheDocument();
+    expect(screen.getByText('London, UK')).toBeInTheDocument();
+  });
+
+  test('renders CitySearch component', async () => {
+    render(<App />);
+  
+    // Wait for CitySearch component to appear in the DOM
+    await waitFor(() => screen.getByTestId('city-search'));
+  
+    const citySearch = screen.getByTestId('city-search');
+    expect(citySearch).toBeInTheDocument();
+  });
+
+  test('displays loading message while fetching events', () => {
+    // Mock the API call to simulate a loading state
+    getEvents.mockReturnValueOnce(new Promise(() => {}));  // Never resolves
+
+    render(<App />);
+
+    // Check if the loading message is displayed while fetching
+    expect(screen.getByText('Loading events...')).toBeInTheDocument();
+  });
+
+  test('displays error message if fetching events fails', async () => {
+    // Simulate an error during fetching
+    getEvents.mockRejectedValueOnce(new Error('Failed to fetch events'));
+
+    render(<App />);
+
+    // Wait for the error message to appear in the document
+    await waitFor(() => {
+      expect(screen.getByText('Failed to load events. Please try again later.')).toBeInTheDocument();
     });
   });
 });
