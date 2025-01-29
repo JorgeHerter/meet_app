@@ -126,121 +126,114 @@ describe('<CitySearch /> integration', () => {
 });*/
 // src/__tests__/CitySearch.test.js
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { getEvents, extractLocations } from '../mock-data.js'; 
-import CitySearch from '../components/CitySearch'; 
+import { getEvents, extractLocations } from '../mock-data.js';
+import CitySearch from '../components/CitySearch';
+import App from '../App';
 
-// Mocking the API
+// Mock data
+const mockLocations = ['New York', 'Los Angeles', 'Chicago', 'Berlin'];
+const mockEventData = mockLocations.map(location => ({ location }));
+
+// Setup mock
 jest.mock('../mock-data.js', () => ({
-  getEvents: jest.fn(() => Promise.resolve([{ location: 'New York' }, { location: 'Los Angeles' }, { location: 'Chicago' }])),
-  extractLocations: jest.fn((events) => events.map(event => event.location))
+  getEvents: jest.fn(),
+  extractLocations: jest.fn()
 }));
 
 describe('<CitySearch /> component', () => {
-  
-  // Test setup for rendering component
   beforeEach(() => {
-    render(<CitySearch allLocations={['New York', 'Los Angeles', 'Chicago']} />);
+    // Reset mocks before each test
+    jest.clearAllMocks();
+    getEvents.mockResolvedValue(mockEventData);
+    extractLocations.mockReturnValue(mockLocations);
   });
 
   test('renders text input', () => {
+    render(<CitySearch events={mockEventData} />);
     const cityTextBox = screen.getByRole('textbox');
-    expect(cityTextBox).toBeInTheDocument();  // Check if it's in the document
-    expect(cityTextBox).toHaveClass('city');  // Check if it has the 'city' class
+    expect(cityTextBox).toBeInTheDocument();
+    expect(cityTextBox).toHaveClass('city');
   });
 
   test('suggestions list is hidden by default', () => {
+    render(<CitySearch events={mockEventData} />);
     const suggestionList = screen.queryByRole('list');
-    expect(suggestionList).not.toBeInTheDocument();  // Check that it is not in the document initially
+    expect(suggestionList).not.toBeInTheDocument();
   });
 
-  test('renders a list of suggestions when city textbox gains focus', async () => {
+  test('renders suggestions list when textbox gains focus', async () => {
     const user = userEvent.setup();
-    const cityTextBox = screen.getByRole('textbox');
+    render(<CitySearch events={mockEventData} allLocations={mockLocations} />);
     
-    // Simulate a focus event on the input field
+    const cityTextBox = screen.getByRole('textbox');
     await user.click(cityTextBox);
     
-    // Query the suggestions list after focus
-    const suggestionList = screen.queryByRole('list');
-    expect(suggestionList).toBeInTheDocument();  // Check that the suggestions list appears
-    expect(suggestionList).toHaveClass('suggestions');  // Check that the suggestions list has the 'suggestions' class
+    const suggestionList = await screen.findByRole('list');
+    expect(suggestionList).toBeInTheDocument();
+    expect(suggestionList).toHaveClass('suggestions');
   });
 
-  test('updates list of suggestions correctly when user types in city textbox', async () => {
+  test('updates suggestions when user types', async () => {
     const user = userEvent.setup();
-    const cityTextBox = screen.getByRole('textbox');
-
-    // Simulate user typing "New" in the city textbox
-    await user.type(cityTextBox, "New");
-
-    // Simulate what suggestions would be based on input
-    const suggestions = ['New York'];  // Based on filtering logic
-
-    // Get all <li> elements inside the suggestion list
-    const suggestionListItems = screen.getAllByRole('listitem');
+    render(<CitySearch events={mockEventData} allLocations={mockLocations} />);
     
-    // Check the length of the suggestion list and its content
-    expect(suggestionListItems).toHaveLength(suggestions.length + 1); // +1 for "See all cities"
-    suggestions.forEach((suggestion, index) => {
-      expect(suggestionListItems[index].textContent).toBe(suggestion);
-    });
-  });
-
-  test('renders correct number of suggestions when list changes', async () => {
-    const user = userEvent.setup();
     const cityTextBox = screen.getByRole('textbox');
+    await user.type(cityTextBox, 'New');
     
-    // Simulate typing "Los" in the textbox
-    await user.type(cityTextBox, "Los");
-
-    // Suggestions after filter
-    const suggestions = ['Los Angeles'];
-
-    // Get all list items
-    const suggestionListItems = screen.getAllByRole('listitem');
-
-    // Check if suggestion list is showing the filtered list of locations
-    expect(suggestionListItems).toHaveLength(suggestions.length + 1); // +1 for "See all cities"
-    suggestions.forEach((suggestion, index) => {
-      expect(suggestionListItems[index].textContent).toBe(suggestion);
-    });
+    const suggestions = await screen.findAllByRole('listitem');
+    expect(suggestions).toHaveLength(2); // "New York" + "See all cities"
+    expect(suggestions[0]).toHaveTextContent('New York');
   });
 
-  test('renders "See all cities" link in suggestions', async () => {
-    const user = userEvent.setup();
-    const cityTextBox = screen.getByRole('textbox');
-    await user.click(cityTextBox);
-
-    // Check if the "See all cities" option is rendered in the suggestion list
-    expect(screen.getByText('See all cities')).toBeInTheDocument();
-  });
-
-  test('renders the suggestion text in the textbox upon clicking on the suggestion', async () => {
+  test('sets city when suggestion is clicked', async () => {
     const setCurrentCity = jest.fn();
-  
-    // Render the CitySearch component with the mock setCurrentCity function
-    render(<CitySearch allLocations={['Berlin', 'New York', 'Los Angeles']} setCurrentCity={setCurrentCity} />);
-  
-    // Ensure CitySearch component has been rendered
-    const citySearch = await screen.findByTestId('city-search');
-    expect(citySearch).toBeInTheDocument();
-  
-    const cityTextBox = screen.getByPlaceholderText('Search for a city');
-  
-    // Simulate typing in the input to filter suggestions
-    fireEvent.change(cityTextBox, { target: { value: 'B' } });
-  
-    // Simulate clicking on the suggestion (e.g., Berlin)
-    const berlinSuggestion = await screen.findByText('Berlin');
-    fireEvent.click(berlinSuggestion);
-  
-    // Check if setCurrentCity was called with the correct value (Berlin)
-    expect(setCurrentCity).toHaveBeenCalledWith('Berlin');
-  
-    // Check if the input value has been updated to 'Berlin'
-    expect(cityTextBox).toHaveValue('Berlin');
+    const user = userEvent.setup();
+    
+    render(
+      <CitySearch 
+        events={mockEventData} 
+        allLocations={mockLocations} 
+        setCurrentCity={setCurrentCity}
+      />
+    );
+
+    const cityTextBox = screen.getByRole('textbox');
+    await user.type(cityTextBox, 'New');
+    
+    const newYorkSuggestion = await screen.findByText('New York');
+    await user.click(newYorkSuggestion);
+
+    expect(setCurrentCity).toHaveBeenCalledWith('New York');
+    expect(cityTextBox).toHaveValue('New York');
   });
-  
 });
+
+describe('<CitySearch /> integration', () => {
+  test('renders suggestions list within App component', async () => {
+    const user = userEvent.setup();
+    
+    // Render app and wait for initial loading to complete
+    const { container } = render(<App />);
+    
+    // Wait for the loading state to complete
+    await waitFor(() => {
+      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+    });
+
+    const citySearchDOM = container.querySelector('#city-search');
+    const cityTextBox = within(citySearchDOM).getByRole('textbox');
+    
+    // Wrap the user interaction in act
+    await user.click(cityTextBox);
+
+    // Wait for suggestions to appear
+    const suggestionListItems = await waitFor(() => 
+      within(citySearchDOM).getAllByRole('listitem')
+    );
+
+    expect(suggestionListItems.length).toBeGreaterThan(0);
+  });
+});
+

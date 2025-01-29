@@ -117,21 +117,27 @@ describe('<App /> component', () => {
 
   test('renders correct number of events', async () => {
     const allEvents = await getEvents();  // Fetch events using the mock API
-
+  
     // Filter valid events, ensuring there are no empty or invalid events
     const filteredEvents = allEvents.filter(event => event && event.location);
-
+  
     render(<EventList events={filteredEvents} />);  // Render EventList with valid events
-
+  
     // Wait for the event list items to be rendered
     const eventListItems = await screen.findAllByRole('listitem');
     
-    expect(eventListItems).toHaveLength(filteredEvents.length);
+    // Ensure the correct number of items is rendered based on the filtered events
+    expect(eventListItems.length).toBe(filteredEvents.length);
   });
 
-  test('renders CitySearch component', () => {
-    expect(AppDOM.querySelector('#city-search')).toBeInTheDocument();
+  test('renders CitySearch component', async () => {
+    // Wait for the component to be rendered
+    const citySearchElement = await screen.findByTestId('city-search');
+    
+    // Assert that it is in the document
+    expect(citySearchElement).toBeInTheDocument();
   });
+  
 
   describe('<EventList /> integration', () => {
     test('renders a list of events when the app is mounted', async () => {

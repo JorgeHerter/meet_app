@@ -156,13 +156,18 @@ describe('<App /> component', () => {
 
   test('renders CitySearch component', async () => {
     render(<App />);
+    
+    // Wait for the loading state to complete
+    await waitFor(() => {
+      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+    });
   
-    // Wait for CitySearch component to appear in the DOM
-    await waitFor(() => screen.getByTestId('city-search'));
-  
-    const citySearch = screen.getByTestId('city-search');
-    expect(citySearch).toBeInTheDocument();
+    // Look for the CitySearch component by its role and label
+    const citySearchInput = screen.getByPlaceholderText('Search for a city');
+    expect(citySearchInput).toBeInTheDocument();
   });
+  
+  
 
   test('displays loading message while fetching events', () => {
     // Mock the API call to simulate a loading state
