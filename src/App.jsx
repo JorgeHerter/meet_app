@@ -70,49 +70,79 @@ import './App.css';
 
 const App = () => {
   const [events, setEvents] = useState([]);
-  const [currentNOE, setCurrentNOE] = useState(32); // Default number of events
+  const [currentNOE, setCurrentNOE] = useState(32);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentCity, setCurrentCity] = useState('');  // State to track the current city
+  const [currentCity, setCurrentCity] = useState('');
 
-  // Function to fetch event data
   useEffect(() => {
+    let isMounted = true;
+
     const fetchData = async () => {
       try {
-        const allEvents = await getEvents(); // Fetch events from the API
-        setEvents(allEvents.slice(0, currentNOE)); // Limit to the currentNOE number
-        setLoading(false);
+        setLoading(true);
+        setError(null);
+        const allEvents = await getEvents();
+        
+        if (isMounted) {
+          // Ensure allEvents is an array before using slice
+          if (Array.isArray(allEvents)) {
+            setEvents(allEvents.slice(0, currentNOE));
+          } else {
+            throw new Error('Events data is not in the expected format');
+          }
+        }
       } catch (error) {
-        console.error("Error fetching events:", error);
-        setError("Failed to load events. Please try again later.");
-        setLoading(false);
+        if (isMounted) {
+          console.error("Error fetching events:", error);
+          setError("Failed to load events. Please try again later.");
+          setEvents([]); // Reset events on error
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchData();
+
+    return () => {
+      isMounted = false; // Cleanup to prevent setting state on unmounted component
+    };
   }, [currentNOE]);
 
-  // Filter events based on the selected city
-  const filteredEvents = currentCity
-    ? events.filter(event => event.location.toLowerCase().includes(currentCity.toLowerCase()))
+  // Safely filter events with null checks
+  const filteredEvents = currentCity && events.length > 0
+    ? events.filter(event => 
+        event?.location?.toLowerCase().includes(currentCity.toLowerCase())
+      )
     : events;
 
-  // Extract locations from events for CitySearch
-  const locations = events.map(event => event.location);
+  // Safely extract locations with null checks
+  const locations = events
+    .filter(event => event?.location)
+    .map(event => event.location);
 
   if (loading) {
-    return <div>Loading events...</div>;
+    return <div data-testid="loading">Loading events...</div>;
   }
 
   if (error) {
-    return <div>{error}</div>;
+    return <div data-testid="error-message">{error}</div>;
   }
 
   return (
     <div className="App">
-      <CitySearch allLocations={locations} setCurrentCity={setCurrentCity} /> {/* Pass setCurrentCity as a prop */}
-      <NumberOfEvents />
-      <EventList events={filteredEvents} /> {/* Display filtered events */}
+      <CitySearch 
+        allLocations={locations} 
+        setCurrentCity={setCurrentCity} 
+      />
+      <NumberOfEvents 
+        currentNOE={currentNOE}
+        setCurrentNOE={setCurrentNOE}
+      />
+      <EventList events={filteredEvents} />
     </div>
   );
 };

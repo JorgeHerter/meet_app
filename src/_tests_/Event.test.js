@@ -7,7 +7,7 @@ import Event from '../components/Event';  // Adjust path accordingly
 const mockEvent = {
   id: 1,
   summary: "Meeting with Berlin Team",
-  created: "2025-01-12T10:00:00Z",
+  created: "2025-01-12T10:00:00Z", // ISO string to match directly
   location: "Berlin",
 };
 
@@ -18,13 +18,16 @@ describe('<Event /> component', () => {
     // Check if the event title is displayed
     expect(screen.queryByText(mockEvent.summary)).toBeInTheDocument();
 
-    // Check if the event start time is displayed as the raw date string
-    expect(screen.queryByText(mockEvent.created)).toBeInTheDocument();
+    // Check if the event created date is displayed (formatted)
+    const formattedDate = new Date(mockEvent.created).toLocaleString();
+    expect(screen.queryByText(formattedDate)).toBeInTheDocument(); // Check formatted date
 
     // Check if the event location is displayed
     expect(screen.queryByText(mockEvent.location)).toBeInTheDocument();
   });
 });
+
+
 
 
 /*import React from "react";
