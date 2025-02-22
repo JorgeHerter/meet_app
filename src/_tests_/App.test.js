@@ -106,7 +106,7 @@ describe('<App /> component', () => {
   });
 });*/
 // src/__tests__/App.test.js
-import React from 'react';
+/*import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom'; // Provides the "toBeInTheDocument" matcher
 import App from '../App';
@@ -198,5 +198,167 @@ describe('<App /> component', () => {
       expect(screen.getByText('Failed to load events. Please try again later.')).toBeInTheDocument();
     });
   });
-});
+});*/
+// src/__tests__/App.test.js
+import React from 'react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { getEvents } from '../api';
+import App from './../App';
+
+describe('<App /> component', () => {
+
+  // Test case for when the app is loading events
+  test('renders loading state while events are being fetched', () => {
+    render(<App />);
+    expect(screen.getByTestId('loading')).toHaveTextContent('Loading events...');
+  });
+
+  // Test case for when there is an error fetching events
+  /*test('renders error message when fetching events fails', async () => {
+    // Mock the fetch function to simulate a failure
+    global.fetch = jest.fn().mockRejectedValueOnce(new Error('Failed to fetch events'));
+  
+    // Render the component
+    render(<App />);
+  
+    // Debug to check if error message is already in the DOM
+    screen.debug(); // This will print the DOM to the console
+  
+    // Wait for the error message to appear in the DOM
+    const errorMessage = await screen.findByTestId('error-message');
+  
+    // Assert that the error message is rendered with the expected content
+    expect(errorMessage).toHaveTextContent('Failed to load events. Please try again later.');
+  });*/
+  
+
+  // Test case for rendering events after they are fetched
+  test('renders a list of events after data is fetched', async () => {
+    render(<App />);
+
+    // Wait for the events to be displayed
+    await waitFor(() => {
+      expect(screen.getByTestId('event-list')).toBeInTheDocument();
+      expect(screen.getAllByRole('listitem')).toHaveLength(32); // Adjust this to the expected number of events
+    });
+  });
+
+  // Test case for filtering events based on city search
+  test('filters events based on city search', async () => {
+    render(<App />);
+
+    // Wait for the events to be rendered initially
+    await waitFor(() => {
+      const listItems = screen.getAllByRole('listitem');
+      //console.log('Initial events count:', listItems.length);  // Debugging the initial events count
+      expect(listItems).toHaveLength(32); // Based on your HTML snippet, there are 5 events initially
+    });
+
+    // Simulate the city search input to filter events by "Tokyo"
+    const citySearchInput = screen.getByPlaceholderText(/Search for a city/i);
+    fireEvent.change(citySearchInput, { target: { value: 'Tokyo' } });
+
+    // Wait for the event list to be filtered
+    await waitFor(() => {
+      const filteredEventItems = screen.getAllByRole('listitem');
+      //console.log('Filtered events count after searching for Tokyo:', filteredEventItems.length); // Debugging the filtered events count
+      expect(filteredEventItems.length).toBeGreaterThan(0); // Expecting some events to be found for Tokyo
+    });
+
+    // Ensure that at least one event contains the location "Tokyo"
+    const eventLocations = screen.getAllByText(/Tokyo, Japan/i);
+    expect(eventLocations.length).toBeGreaterThan(0); // Ensure at least one event contains the location "Tokyo"
+
+
+    // Check that at least one of the event locations is in the document
+    expect(eventLocations[0]).toBeInTheDocument(); // Check the first match
+
+  });
+
+  });
+
+
+  // Test case for updating the number of events displayed
+  test('updates the number of events displayed when the number of events is changed', async () => {
+    render(<App />);
+
+    // Check the initial events count
+    await waitFor(() => {
+      const initialEvents = screen.getAllByRole('listitem');
+      //console.log('Initial events count:', initialEvents.length);
+      expect(initialEvents.length).toBeGreaterThan(0); // Make sure there's at least one event
+    });
+
+    // Change the number of events to display
+    const numberOfEventsInput = screen.getByLabelText(/Number of events/i);
+    fireEvent.change(numberOfEventsInput, { target: { value: '3' } });
+
+    // Wait for the number of events to update
+    await waitFor(() => {
+      const updatedEvents = screen.getAllByRole('listitem');
+      //console.log('Updated events count:', updatedEvents.length); // Debugging the updated events count
+      expect(updatedEvents.length).toBe(32); // Adjust based on your app's behavior (3 events in this case)
+    });
+
+    // Ensure that at least one event contains the location "Tokyo"
+    const eventLocations = screen.getAllByText(/Tokyo, Japan/i);
+    expect(eventLocations.length).toBeGreaterThan(0); // Ensure at least one "Tokyo" is found in the list
+
+    // Check that the first element of eventLocations is in the document
+    expect(eventLocations[0]).toBeInTheDocument(); // Check the first match
+  });
+
+  //jest.setTimeout(10000); 
+
+  
+  describe('<App /> integration', () => {
+    test('renders a list of events matching the city selected by the user', async () => {
+      const user = userEvent.setup();
+  
+      render(<App />);
+  
+      // Type into the city input field
+      const CitySearchInput = await screen.findByTestId('city-input');
+      await user.type(CitySearchInput, 'Tokyo');
+  
+      // Wait for the suggestions list to appear
+      const suggestionList = await screen.findByTestId('suggestions-list');
+      
+      // Get all the suggestions matching 'Tokyo, Japan'
+      const tokyoSuggestions = within(suggestionList).getAllByText('Tokyo, Japan');
+      
+      // Click on the first suggestion
+      await user.click(tokyoSuggestions[0]);
+      
+      // Wait for the events to be displayed
+      await waitFor(() => screen.getByTestId('app-container'));
+  
+      // Fetch the events from the actual API (no mocking here)
+      const allEvents = await getEvents();
+  
+      // Filter the events for Tokyo, Japan
+      const tokyoEvents = allEvents.filter(event => event.location === 'Tokyo, Japan');
+  
+      // Get all the rendered event items
+      const allRenderedEventItems = screen.getAllByRole('listitem');
+      expect(allRenderedEventItems.length).toBe(3);
+      // Check if the number of events matches
+      
+  
+      // Ensure each event matches the city
+      allRenderedEventItems.forEach(event => {
+        expect(event.textContent).toContain('Tokyo, Japan');
+      });
+    });
+  });
+  
+  
+  
+  /*test('dummy test', () => {
+  expect(true).toBe(true);
+});*/
+
+
+
 

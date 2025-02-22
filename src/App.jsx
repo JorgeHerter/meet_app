@@ -133,16 +133,21 @@ const App = () => {
   }
 
   return (
-    <div className="App">
+    <div className="App" data-testid="app-container">
       <CitySearch 
         allLocations={locations} 
         setCurrentCity={setCurrentCity} 
+        data-testid="city-search"
       />
       <NumberOfEvents 
         currentNOE={currentNOE}
         setCurrentNOE={setCurrentNOE}
+        data-testid="number-of-events"
       />
-      <EventList events={filteredEvents} />
+      <EventList 
+        events={filteredEvents} 
+        data-testid="event-list"
+      />
     </div>
   );
 };
