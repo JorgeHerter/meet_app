@@ -159,7 +159,7 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from '../App';
 import EventList from '../components/EventList'; // Adjust path accordingly
-import { getEvents } from '../api'; // This is your real API call
+import { getEvents, extractLocations } from '../api'; // This is your real API call
 
 // Create a functional component that uses the hooks
 const EventListWithState = () => {

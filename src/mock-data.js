@@ -1,6 +1,4 @@
 const mockData = [
-  {
-    "events": [
       {
         "kind": "calendar#event",
         "etag": "\"3187237556010000\"",
@@ -17251,10 +17249,7 @@ const mockData = [
         },
         "eventType": "default"
       }
-    ]
-  }
-      
-  ];
+    ];
   
   export default mockData;
   
