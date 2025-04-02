@@ -7,13 +7,8 @@ export const extractLocations = (events) => {
 };
 
 // Set API_BASE_URL based on the hostname
-let API_BASE_URL;
+let API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com'; // Development URL
 
-if (window.location.hostname === 'localhost') {
-  API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com'; // Development URL
-} else {
-  API_BASE_URL = 'https://meet-app-psi.vercel.app/'; // Production URL
-}
 
 console.log('API_BASE_URL at initialization:', API_BASE_URL); // Debug log
 
