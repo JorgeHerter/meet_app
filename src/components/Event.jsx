@@ -54,9 +54,18 @@ const Event = ({ event }) => {
     setShowDetails(prev => !prev);
   };
 
-  // Destructuring event.start safely
-  const { start, location, created, summary, description, hangoutLink } = event;
-  const startDateTime = start?.dateTime || "N/A";  // Fallback if dateTime is not available
+  // Safely destructuring event properties with fallback values for undefined or missing properties
+  const {
+    start = {}, 
+    location = "No location provided", 
+    created = "No creation date available", 
+    summary = "No title available", 
+    description = "No description available", 
+    hangoutLink = "#" // Default to '#' if no hangout link is provided
+  } = event || {};
+
+  // Fallback for start.dateTime
+  const startDateTime = start?.dateTime || "N/A";  
   const formattedStartTime = startDateTime === "N/A" ? startDateTime : formatDate(startDateTime);
 
   return (
@@ -65,7 +74,7 @@ const Event = ({ event }) => {
       <p><strong>Location:</strong> {location}</p>
       <p><strong>Created:</strong> {new Date(created).toLocaleString()}</p>
       <p><strong>Start Time:</strong> {formattedStartTime}</p>
-      <button onClick={toggleDetails}>
+      <button className="details-button" onClick={toggleDetails}>
         {showDetails ? "Hide Details" : "Show Details"}
       </button>
 
@@ -80,4 +89,5 @@ const Event = ({ event }) => {
 };
 
 export default Event;
+
 

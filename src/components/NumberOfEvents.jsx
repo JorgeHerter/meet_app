@@ -1,36 +1,37 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-const NumberOfEvents = () => {
-  const [numberOfEvents, setNumberOfEvents] = useState(32);
+const NumberOfEvents = ({ currentNOE, setCurrentNOE }) => {
   const maxEvents = 50; // Set a maximum limit
   const minEvents = 1; // Set a minimum limit
 
   // Handle changes to the input field
   const handleInputChange = (event) => {
-    let value = event.target.value;
-
-    // Ensure the value is a number and within the allowed range (minEvents to maxEvents)
-    value = Math.max(minEvents, Math.min(maxEvents, value)); // Ensure value is within bounds
-
-    setNumberOfEvents(value);
+    const value = parseInt(event.target.value);
+    
+    // Check if value is a number
+    if (isNaN(value)) {
+      return;
+    }
+    
+    // Ensure the value is within the allowed range
+    const boundedValue = Math.max(minEvents, Math.min(maxEvents, value));
+    setCurrentNOE(boundedValue);
   };
 
   return (
-    <div>
-      <label htmlFor="numberOfEvents">Number of events:</label>
+    <div id="number-of-events" data-testid="number-of-events">
+      <label htmlFor="number-of-events-input">Number of events:</label>
       <input
-        id="numberOfEvents"
+        id="number-of-events-input"
         type="number"
-        value={numberOfEvents}
+        value={currentNOE}
         onChange={handleInputChange}
-        min={minEvents} // Ensures no negative values
-        max={maxEvents} // Limits input to maxEvents
-        step="1" // Allows step increments of 1
-        aria-label="Number of events" // Ensuring accessibility
+        min={minEvents}
+        max={maxEvents}
+        aria-label="Number of events"
       />
     </div>
   );
 };
 
 export default NumberOfEvents;
-

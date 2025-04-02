@@ -1,130 +1,232 @@
 // src/__tests__/Event.test.js
-/*import React from 'react';
+import React from 'react';
+import { render, within, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import Event from '../components/Event';
+import App from '../App';
+import { getEvents } from '../api';
 
-import { render, screen } from '@testing-library/react';
-import Event from '../components/Event';  // Adjust path accordingly
-
-// Mock event data
-const mockEvent = {
-  id: 1,
-  summary: "Meeting with Berlin Team",
-  created: "2025-01-12T10:00:00Z", // ISO string to match directly
-  location: "Berlin",
-};
+// Mock the API functions
+jest.mock('../api', () => ({
+  getEvents: jest.fn(),
+}));
 
 describe('<Event /> component', () => {
-  test('renders event title, time, and location', () => {
-    render(<Event event={mockEvent} />);
-
-    // Check if the event title is displayed
-    expect(screen.queryByText(mockEvent.summary)).toBeInTheDocument();
-
-    // Check if the event created date is displayed (formatted)
-    const formattedDate = new Date(mockEvent.created).toLocaleString();
-    expect(screen.queryByText(formattedDate)).toBeInTheDocument(); // Check formatted date
-
-    // Check if the event location is displayed
-    expect(screen.queryByText(mockEvent.location)).toBeInTheDocument();
-  });
-});*/
-
-/*import React from "react";
-import { render, screen } from "@testing-library/react";
-import Event from "../components/Event";
-
-test("renders event details correctly", () => {
   const mockEvent = {
-    summary: "Meeting with Team",
-    created: "2025-01-22T09:00:00Z",
-    location: "Conference Room A",
-    id: "1",
+    id: 'event123',
+    summary: 'Test Event',
+    location: 'Berlin, Germany',
+    description: 'This is a test event description',
+    created: '2023-01-01T10:00:00Z',
+    start: {
+      dateTime: '2023-01-15T18:00:00Z'
+    },
+    hangoutLink: 'https://meet.google.com/abc-def-ghi'
   };
 
-  render(<Event event={mockEvent} />);
-
-  // Check if event title, created time, and location are rendered
-  expect(screen.getByText("Meeting with Team")).toBeInTheDocument();
-  expect(screen.getByText("2025-01-22T09:00:00Z")).toBeInTheDocument();
-  expect(screen.getByText("Conference Room A")).toBeInTheDocument();
-});*/
-
-import React, { useState, useEffect } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import Event from '../components/Event'; // Adjust path accordingly
-import { getEvents } from '../api'; // Import the real API method
-
-// Create a functional component to use hooks
-const EventWithState = () => {
-  const [event, setEvent] = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchEvent = async () => {
-      try {
-        const eventData = await getEvents(); // Use the real API method
-        setEvent(eventData[0]); // Assuming you're showing the first event for simplicity
-      } catch (error) {
-        setError('Error fetching event');
-      }
-    };
-
-    fetchEvent();
-  }, []); // Empty array ensures this only runs once when the component mounts
-
-  if (error) {
-    return <div>{error}</div>; // Display error message
-  }
-
-  if (!event) {
-    return <div>Loading...</div>; // Loading state
-  }
-
-  // Return the Event component with event passed as props
-  return <Event event={event} />;
-};
-
-describe('<Event /> component', () => {
-  test('renders event details correctly', async () => {
-    render(<EventWithState />); // Render the component with hooks
-  
-    // Wait for the event details to be rendered
-    await waitFor(() => screen.getByText('Location:')); 
-  
-    // Check if event details are displayed
-    const eventLocationLabel = screen.getByText('Location:');
-    expect(eventLocationLabel).toBeInTheDocument();
-  
-    const eventLocation = screen.getByText('Tokyo, Japan'); // Adjust this to match the actual location
-    expect(eventLocation).toBeInTheDocument();
+  test('renders event component with correct event details', () => {
+    const { getByText } = render(<Event event={mockEvent} />);
+    
+    // Basic details should be visible
+    expect(getByText('Test Event')).toBeInTheDocument();
+    expect(getByText(/Berlin, Germany/)).toBeInTheDocument();
+    
+    // Date information should be visible
+    expect(getByText(/Created:/)).toBeInTheDocument();
+    expect(getByText(/Start Time:/)).toBeInTheDocument();
+    
+    // Show Details button should be visible
+    const showDetailsButton = getByText('Show Details');
+    expect(showDetailsButton).toBeInTheDocument();
   });
   
-
-  /*test('renders error message if event is not found', async () => {
-    // Simulate an API failure by mocking the global fetch
-    global.fetch = jest.fn().mockRejectedValueOnce(new Error('Event not found'));
+  test('expanded details are hidden by default', () => {
+    const { queryByText } = render(<Event event={mockEvent} />);
+    
+    // Description should not be visible by default
+    expect(queryByText(/This is a test event description/)).not.toBeInTheDocument();
+    
+    // Hangout link should not be visible by default
+    expect(queryByText(/Join here/)).not.toBeInTheDocument();
+  });
   
-    // Wrap the state updates and render in act()
-    await act(async () => {
-      render(<EventWithState />);
-    });
+  test('expands event details when "Show Details" button is clicked', async () => {
+    const user = userEvent.setup();
+    const { getByText, queryByText } = render(<Event event={mockEvent} />);
+    
+    // Initially details are hidden
+    expect(queryByText(/This is a test event description/)).not.toBeInTheDocument();
+    
+    // Click the "Show Details" button
+    const showDetailsButton = getByText('Show Details');
+    await user.click(showDetailsButton);
+    
+    // After clicking, details should be visible
+    expect(getByText(/This is a test event description/)).toBeInTheDocument();
+    expect(getByText(/Join here/)).toBeInTheDocument();
+    
+    // Button should now say "Hide Details"
+    expect(getByText('Hide Details')).toBeInTheDocument();
+  });
   
-    // Check if error message is displayed when API fails
-    const errorMessage = await screen.findByText('Error fetching event');
-    expect(errorMessage).toBeInTheDocument();
-  });*/
+  test('collapses event details when "Hide Details" button is clicked', async () => {
+    const user = userEvent.setup();
+    const { getByText, queryByText } = render(<Event event={mockEvent} />);
+    
+    // First expand details
+    const showDetailsButton = getByText('Show Details');
+    await user.click(showDetailsButton);
+    
+    // Verify details are shown
+    expect(getByText(/This is a test event description/)).toBeInTheDocument();
+    
+    // Now click "Hide Details" button
+    const hideDetailsButton = getByText('Hide Details');
+    await user.click(hideDetailsButton);
+    
+    // After clicking, details should be hidden again
+    expect(queryByText(/This is a test event description/)).not.toBeInTheDocument();
+    
+    // Button should say "Show Details" again
+    expect(getByText('Show Details')).toBeInTheDocument();
+  });
   
-  test('renders loading state initially', () => {
-    render(<EventWithState />); // Render the component with hooks
-
-    // Check if loading message is displayed initially
-    const loadingMessage = screen.getByText('Loading...');
-    expect(loadingMessage).toBeInTheDocument();
+  test('handles event with missing properties gracefully', () => {
+    const incompleteEvent = {
+      id: 'event456',
+      summary: 'Incomplete Event',
+      // Missing location, description, etc.
+    };
+    
+    const { getByText } = render(<Event event={incompleteEvent} />);
+    
+    // Should display the event with default fallback values
+    expect(getByText('Incomplete Event')).toBeInTheDocument();
+    expect(getByText(/No location provided/)).toBeInTheDocument();
   });
 });
-/*test('dummy test', () => {
-  expect(true).toBe(true);
-});*/
 
-
-
+describe('<Event /> integration', () => {
+  test('renders events with show/hide details functionality in the app', async () => {
+    const user = userEvent.setup();
+    const mockEvents = [
+      {
+        id: 'event123',
+        summary: 'Test Event 1',
+        location: 'Berlin, Germany',
+        description: 'Test Event 1 Description',
+        created: '2023-01-01T10:00:00Z',
+        start: { dateTime: '2023-01-15T18:00:00Z' },
+        hangoutLink: 'https://meet.google.com/abc-def-ghi'
+      },
+      {
+        id: 'event456',
+        summary: 'Test Event 2',
+        location: 'London, UK',
+        description: 'Test Event 2 Description',
+        created: '2023-01-02T11:00:00Z',
+        start: { dateTime: '2023-01-16T19:00:00Z' },
+        hangoutLink: 'https://meet.google.com/jkl-mno-pqr'
+      }
+    ];
+    
+    // Mock the API to return our test events
+    getEvents.mockResolvedValue(mockEvents);
+    
+    const AppComponent = render(<App />);
+    const AppDOM = AppComponent.container.firstChild;
+    
+    // Wait for the events to load
+    await waitFor(() => {
+      expect(AppComponent.queryByTestId('loading')).not.toBeInTheDocument();
+    });
+    
+    // Find the event list
+    const EventListDOM = AppDOM.querySelector('#event-list');
+    const eventItems = within(EventListDOM).queryAllByRole('listitem');
+    
+    // Verify both events are rendered
+    expect(eventItems.length).toBe(mockEvents.length);
+    
+    // Check first event details
+    const firstEvent = within(eventItems[0]);
+    expect(firstEvent.getByText('Test Event 1')).toBeInTheDocument();
+    expect(firstEvent.getByText(/Berlin, Germany/)).toBeInTheDocument();
+    
+    // Description should be hidden initially
+    expect(firstEvent.queryByText(/Test Event 1 Description/)).not.toBeInTheDocument();
+    
+    // Click the "Show Details" button for the first event
+    const showDetailsButton = firstEvent.getByText('Show Details');
+    await user.click(showDetailsButton);
+    
+    // Now description should be visible
+    expect(firstEvent.getByText(/Test Event 1 Description/)).toBeInTheDocument();
+    
+    // Hide details again
+    const hideDetailsButton = firstEvent.getByText('Hide Details');
+    await user.click(hideDetailsButton);
+    
+    // Description should be hidden again
+    expect(firstEvent.queryByText(/Test Event 1 Description/)).not.toBeInTheDocument();
+  });
+  
+  test('event details toggle independently', async () => {
+    const user = userEvent.setup();
+    const mockEvents = [
+      {
+        id: 'event123',
+        summary: 'Test Event 1',
+        location: 'Berlin, Germany',
+        description: 'Test Event 1 Description',
+        created: '2023-01-01T10:00:00Z',
+        start: { dateTime: '2023-01-15T18:00:00Z' }
+      },
+      {
+        id: 'event456',
+        summary: 'Test Event 2',
+        location: 'London, UK',
+        description: 'Test Event 2 Description',
+        created: '2023-01-02T11:00:00Z',
+        start: { dateTime: '2023-01-16T19:00:00Z' }
+      }
+    ];
+    
+    // Mock the API to return our test events
+    getEvents.mockResolvedValue(mockEvents);
+    
+    const AppComponent = render(<App />);
+    const AppDOM = AppComponent.container.firstChild;
+    
+    // Wait for the events to load
+    await waitFor(() => {
+      expect(AppComponent.queryByTestId('loading')).not.toBeInTheDocument();
+    });
+    
+    // Find the event list
+    const EventListDOM = AppDOM.querySelector('#event-list');
+    const eventItems = within(EventListDOM).queryAllByRole('listitem');
+    
+    // Show details for the first event
+    const firstEvent = within(eventItems[0]);
+    const firstShowButton = firstEvent.getByText('Show Details');
+    await user.click(firstShowButton);
+    
+    // Show details for the second event
+    const secondEvent = within(eventItems[1]);
+    const secondShowButton = secondEvent.getByText('Show Details');
+    await user.click(secondShowButton);
+    
+    // Both events should show their descriptions
+    expect(firstEvent.getByText(/Test Event 1 Description/)).toBeInTheDocument();
+    expect(secondEvent.getByText(/Test Event 2 Description/)).toBeInTheDocument();
+    
+    // Hide details for the first event only
+    const firstHideButton = firstEvent.getByText('Hide Details');
+    await user.click(firstHideButton);
+    
+    // First event description should be hidden, second should still be visible
+    expect(firstEvent.queryByText(/Test Event 1 Description/)).not.toBeInTheDocument();
+    expect(secondEvent.getByText(/Test Event 2 Description/)).toBeInTheDocument();
+  });
+});
