@@ -1,4 +1,4 @@
-import mockData from './mock-data';
+/*import mockData from './mock-data';
 
 // Utility function to extract unique locations from the events array
 export const extractLocations = (events) => {
@@ -153,7 +153,7 @@ export const getAccessToken = async (code) => {
 };*/
 
 // Function to clean up URL query parameters (e.g., after OAuth redirect)
-export const removeQueryParams = () => {
+/*export const removeQueryParams = () => {
   let newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
   window.history.pushState("", "", newUrl); // Clean up URL by removing query params
   console.log('Cleaned URL:', newUrl); // Debug log
@@ -186,4 +186,154 @@ if (code) {
   // If no code in the URL, start the OAuth process
   console.log("No code found, starting OAuth process...");
   startOAuthProcess();
+}*/
+
+import mockData from './mock-data';
+
+// Set API_BASE_URL based on the environment
+const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev';
+
+console.log('API_BASE_URL at initialization:', API_BASE_URL); // Debug log
+
+// Utility function to extract unique locations from the events array
+export const extractLocations = (events) => {
+  const locations = events.map((event) => event.location);
+  return [...new Set(locations)];
+};
+
+// Function to get the Google OAuth URL
+export const getAuthURL = async () => {
+  try {
+    console.log('Fetching OAuth URL...');
+    const response = await fetch(`${API_BASE_URL}/api/get-auth-url`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const { authUrl } = await response.json();
+    console.log('Auth URL:', authUrl);
+    return authUrl;
+  } catch (error) {
+    console.error('Error getting auth URL:', error);
+    throw error;
+  }
+};
+
+// Function to check if the access token is valid
+const checkToken = async (accessToken) => {
+  try {
+    console.log('Checking token validity...');
+    const response = await fetch(
+      `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`
+    );
+    const result = await response.json();
+    console.log('Token check response:', result);
+    return !result.error;
+  } catch (error) {
+    console.error('Error validating token:', error);
+    return false;
+  }
+};
+
+// Function to get events from AWS Lambda
+export const getEvents = async () => {
+  const token = sessionStorage.getItem('access_token');
+  console.log('Access token from sessionStorage:', token);
+
+  if (!token) {
+    console.log('No access token found. Starting OAuth process...');
+    await startOAuthProcess();
+    return [];
+  }
+
+  const isValid = await checkToken(token);
+  if (!isValid) {
+    console.log('Invalid access token. Starting OAuth process...');
+    sessionStorage.removeItem('access_token');
+    await startOAuthProcess();
+    return [];
+  }
+
+  try {
+    const url = `${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`;
+    console.log('Fetching events from:', url);
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const { events } = await response.json();
+    console.log('Fetched events:', events);
+    return events;
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    alert('Error fetching events. Using mock data.');
+    return mockData;
+  }
+};
+
+// Function to get access token from AWS Lambda
+export const getAccessToken = async (code) => {
+  try {
+    console.log('Fetching access token with code:', code);
+    const response = await fetch(`${API_BASE_URL}/api/token/${encodeURIComponent(code)}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const { access_token } = await response.json();
+    if (!access_token) {
+      throw new Error('Access token missing from response');
+    }
+
+    sessionStorage.setItem('access_token', access_token);
+    console.log('Access token stored in sessionStorage:', access_token);
+    return access_token;
+  } catch (error) {
+    console.error('Error getting access token:', error);
+    throw error;
+  }
+};
+
+// Function to clean up URL query parameters (e.g., after OAuth redirect)
+export const removeQueryParams = () => {
+  const newUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+  window.history.pushState({}, document.title, newUrl);
+  console.log('Cleaned URL:', newUrl);
+};
+
+// Function to initiate OAuth process
+export const startOAuthProcess = async () => {
+  try {
+    const authUrl = await getAuthURL();
+    console.log('Redirecting to auth URL:', authUrl);
+    window.location.href = authUrl;
+  } catch (error) {
+    console.error('Error starting OAuth process:', error);
+    alert('Failed to start OAuth process. Please try again.');
+  }
+};
+
+// Function to handle the OAuth process after redirect
+export const handleOAuthRedirect = async () => {
+  const code = new URLSearchParams(window.location.search).get('code');
+  if (code) {
+    console.log('Authorization code received:', code);
+    try {
+      const accessToken = await getAccessToken(code);
+      console.log('Access token received:', accessToken);
+      removeQueryParams();
+    } catch (error) {
+      console.error('Error exchanging code for access token:', error);
+      alert('Failed to complete login. Please try again.');
+    }
+  } else {
+    console.log('No authorization code found. Starting OAuth process...');
+    await startOAuthProcess();
+  }
+};
+
+// Automatically handle OAuth redirect if a code is present in the URL
+if (new URLSearchParams(window.location.search).has('code')) {
+  handleOAuthRedirect();
 }
