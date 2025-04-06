@@ -247,7 +247,7 @@ export const getEvents = async () => {
 
   const isValid = await checkToken(token);
   if (!isValid) {
-    console.log('Invalid access token. Starting OAuth process...');
+    console.log('Invalid access token. Removing token and restarting OAuth process...');
     sessionStorage.removeItem('access_token');
     await startOAuthProcess();
     return [];
@@ -276,7 +276,8 @@ export const getEvents = async () => {
 export const getAccessToken = async (code) => {
   try {
     console.log('Fetching access token with code:', code);
-    const response = await fetch(`${API_BASE_URL}/api/token/${encodeURIComponent(code)}`);
+    const response = await fetch(`${API_BASE_URL}/api/wrong/${encodeURIComponent(code)}`);
+    console.log('Response status:', response.status);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -328,12 +329,27 @@ export const handleOAuthRedirect = async () => {
       alert('Failed to complete login. Please try again.');
     }
   } else {
-    console.log('No authorization code found. Starting OAuth process...');
-    await startOAuthProcess();
+    console.log('No authorization code found. Checking for existing token...');
+    const token = sessionStorage.getItem('access_token');
+    if (!token) {
+      console.log('No access token found. Starting OAuth process...');
+      await startOAuthProcess();
+    } else {
+      console.log('Access token already exists. Skipping OAuth process.');
+    }
   }
 };
 
 // Automatically handle OAuth redirect if a code is present in the URL
 if (new URLSearchParams(window.location.search).has('code')) {
   handleOAuthRedirect();
+} else {
+  console.log('No authorization code found in URL. Checking for existing token...');
+  const token = sessionStorage.getItem('access_token');
+  if (!token) {
+    console.log('No access token found. Starting OAuth process...');
+    startOAuthProcess();
+  } else {
+    console.log('Access token already exists. Skipping OAuth process.');
+  }
 }
