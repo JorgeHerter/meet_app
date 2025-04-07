@@ -278,39 +278,60 @@ export const getEvents = async () => {
   }
 };
 
-// Function to get access token from AWS Lambda
+// Function to get access token from AWS Lambda (with improved error handling)
 export const getAccessToken = async (code) => {
   try {
     console.log('Fetching access token with code:', code);
-    const response = await fetch(`${API_BASE_URL}/api/token/${encodeURIComponent(code)}`);
+    const url = `${API_BASE_URL}/api/token/${encodeURIComponent(code)}`;
+    console.log('Request URL:', url);
+    
+    const response = await fetch(url);
     console.log('Response status:', response.status);
 
     if (!response.ok) {
-      const errorText = await response.text(); // Capture the error response body
-      console.error('Error response from backend:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      let errorMessage;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || 'Unknown error';
+        console.error('Structured error from backend:', errorData);
+      } catch (e) {
+        // If response is not JSON
+        const errorText = await response.text();
+        errorMessage = errorText || `HTTP error! status: ${response.status}`;
+        console.error('Raw error from backend:', errorText);
+      }
+      
+      throw new Error(`Failed to get access token: ${errorMessage}`);
     }
 
     const result = await response.json();
-    console.log('Backend response:', result); // Log the full response
+    console.log('Tokens received structure:', Object.keys(result).join(', ')); // Log keys without exposing tokens
 
     const { access_token } = result;
     if (!access_token) {
       throw new Error('Access token missing from response');
     }
 
-    // Store the token in sessionStorage and make sure it's actually set
+    // Store the token and verify storage worked
     sessionStorage.setItem('access_token', access_token);
-    const storedToken = sessionStorage.getItem('access_token');
-    console.log('Access token stored in sessionStorage:', storedToken);
+    const verifyToken = sessionStorage.getItem('access_token');
     
-    if (!storedToken) {
-      console.error('Failed to store access token in sessionStorage');
+    if (!verifyToken) {
+      console.error('Failed to store token in sessionStorage. This might be due to:');
+      console.error('- Private browsing mode');
+      console.error('- Storage quota exceeded');
+      console.error('- Cookies/storage disabled in browser');
+      
+      alert('Unable to store authentication token. Please check browser privacy settings and try again.');
+    } else {
+      console.log('Access token successfully stored in sessionStorage');
     }
     
     return access_token;
   } catch (error) {
     console.error('Error getting access token:', error.message || error);
+    // Show a more user-friendly error
+    alert(`Authentication error: ${error.message || 'Unable to log in. Please try again.'}`);
     throw error;
   }
 };
