@@ -300,7 +300,7 @@ export const getAccessToken = async (code) => {
       throw new Error('Access token missing from response');
     }
 
-    sessionStorage.setItem('access_token', access_token);
+    sessionStorage.setItem('access_token', access_token); // Store the access token
     console.log('Access token stored in sessionStorage:', access_token);
     return access_token;
   } catch (error) {
