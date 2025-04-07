@@ -236,8 +236,8 @@ const checkToken = async (accessToken) => {
 
 // Function to get events from AWS Lambda
 export const getEvents = async () => {
-  const token = localStorage.getItem('access_token'); // Retrieve token from localStorage
-  console.log('Access token from localStorage:', token);
+  const token = sessionStorage.getItem('access_token');
+  console.log('Access token from sessionStorage:', token);
 
   if (!token) {
     console.log('No access token found. Starting OAuth process...');
@@ -248,7 +248,7 @@ export const getEvents = async () => {
   const isValid = await checkToken(token);
   if (!isValid) {
     console.log('Invalid access token. Removing token and restarting OAuth process...');
-    localStorage.removeItem('access_token'); // Remove invalid token
+    sessionStorage.removeItem('access_token');
     await startOAuthProcess();
     return [];
   }
@@ -290,8 +290,9 @@ export const getAccessToken = async (code) => {
       throw new Error('Access token missing from response');
     }
 
-    localStorage.setItem('access_token', access_token); // Store the token in localStorage
-    console.log('Access token stored in localStorage:', access_token);
+    // Store the confirmed token in sessionStorage
+    sessionStorage.setItem('access_token', access_token);
+    console.log('Access token stored in sessionStorage:', access_token);
     return access_token;
   } catch (error) {
     console.error('Error getting access token:', error.message || error);
@@ -327,8 +328,8 @@ export const handleOAuthRedirect = async () => {
       const accessToken = await getAccessToken(code);
       console.log('Access token received:', accessToken);
 
-      // Store the access token in localStorage
-      localStorage.setItem('access_token', accessToken);
+      // Store the access token in sessionStorage
+      sessionStorage.setItem('access_token', accessToken);
 
       // Clean up the URL to remove the authorization code
       removeQueryParams();
@@ -338,7 +339,7 @@ export const handleOAuthRedirect = async () => {
     }
   } else {
     console.log('No authorization code found. Checking for existing token...');
-    const token = localStorage.getItem('access_token');
+    const token = sessionStorage.getItem('access_token');
     if (!token) {
       console.log('No access token found. Starting OAuth process...');
       await startOAuthProcess();
@@ -353,7 +354,7 @@ if (new URLSearchParams(window.location.search).has('code')) {
   handleOAuthRedirect();
 } else {
   console.log('No authorization code found in URL. Checking for existing token...');
-  const token = localStorage.getItem('access_token');
+  const token = sessionStorage.getItem('access_token');
   if (!token) {
     console.log('No access token found. Starting OAuth process...');
     startOAuthProcess();
