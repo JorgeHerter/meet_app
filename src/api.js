@@ -328,7 +328,11 @@ const handleOAuthRedirect = async () => {
     console.log('Authorization code received:', code);
     try {
       const response = await fetch(`${API_BASE_URL}/api/token/${encodeURIComponent(code)}`);
+      console.log('Response status:', response.status);
+
       if (!response.ok) {
+        const errorText = await response.text(); // Capture the error response body
+        console.error('Error response from backend:', errorText);
         throw new Error(`Failed to fetch access token: ${response.statusText}`);
       }
 
@@ -338,6 +342,10 @@ const handleOAuthRedirect = async () => {
       if (tokens.access_token) {
         sessionStorage.setItem('access_token', tokens.access_token);
         console.log('Access token stored in sessionStorage:', tokens.access_token);
+
+        // Verify that the token is stored correctly
+        const token = sessionStorage.getItem('access_token');
+        console.log('Access token from sessionStorage after storing:', token);
       } else {
         throw new Error('Access token missing in response');
       }
