@@ -276,7 +276,7 @@ export const getEvents = async () => {
 export const getAccessToken = async (code) => {
   try {
     console.log('Fetching access token with code:', code);
-    const response = await fetch(`${API_BASE_URL}/api/wrong/${encodeURIComponent(code)}`);
+    const response = await fetch(`${API_BASE_URL}/api/token/${encodeURIComponent(code)}`);
     console.log('Response status:', response.status);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
