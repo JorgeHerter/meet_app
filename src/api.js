@@ -328,78 +328,80 @@ export const getEvents = async () => {
 // Function to get access token from AWS Lambda with comprehensive error handling
 export const getAccessToken = async (code) => {
   if (!code) {
-    log('No authorization code provided');
-    throw new Error('No authorization code provided');
+    console.error('No authorization code provided');
+    throw new Error('Missing authorization code');
   }
-
+  
   try {
-    log('Exchanging authorization code for access token...');
-    log('Code:', code.substring(0, 10) + '...');
+    console.log('Exchanging code for access token...');
     
-    const url = `${API_BASE_URL}/api/token/${encodeURIComponent(code)}`;
-    log('Request URL:', url);
+    // Get stored values
+    const codeVerifier = sessionStorage.getItem(STORAGE_KEYS.CODE_VERIFIER);
+    const redirectUri = sessionStorage.getItem(STORAGE_KEYS.REDIRECT_URI);
     
-    const response = await fetch(url, {
-      method: 'GET',
+    // Log what we're sending
+    console.log('Code:', code.substring(0, 5) + '...');
+    console.log('Code verifier available:', !!codeVerifier);
+    console.log('Redirect URI available:', !!redirectUri);
+    
+    // Build request body as JSON
+    const requestBody = {
+      code: code,
+    };
+    
+    if (codeVerifier) {
+      requestBody.codeVerifier = codeVerifier;
+    }
+    
+    if (redirectUri) {
+      requestBody.redirectUri = redirectUri;
+    }
+    
+    // Make the request with proper JSON body
+    const response = await fetch(`${API_BASE_URL}/api/token`, {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
-      }
+      },
+      body: JSON.stringify(requestBody)
     });
     
-    log('Response status:', response.status);
-
-    // Handle non-200 responses
+    console.log('Token response status:', response.status);
+    
+    // Handle error responses with detailed logging
     if (!response.ok) {
-      let errorData;
-      
+      let errorDetail;
       try {
-        // Try to parse as JSON
-        errorData = await response.json();
-        log('Structured error from backend:', errorData);
+        const errorData = await response.json();
+        errorDetail = JSON.stringify(errorData);
+        console.error('Token exchange error details:', errorData);
       } catch (e) {
-        // If not JSON, get raw text
-        const errorText = await response.text();
-        log('Raw error from backend:', errorText);
-        errorData = { message: errorText };
+        errorDetail = await response.text() || `Status ${response.status}`;
+        console.error('Error response (text):', errorDetail);
       }
-      
-      throw new Error(`Failed to get access token: ${errorData.message || errorData.error || response.statusText}`);
-    }
-
-    // Parse the response
-    const result = await response.json();
-    log('Token response received with keys:', Object.keys(result).join(', '));
-
-    // Validate that we received an access token
-    const { access_token } = result;
-    if (!access_token) {
-      log('Access token missing from response');
-      throw new Error('Access token missing from response');
-    }
-
-    // Store token in session storage
-    try {
-      sessionStorage.setItem('access_token', access_token);
-      
-      // Verify token was stored correctly
-      const verifyToken = sessionStorage.getItem('access_token');
-      
-      if (!verifyToken) {
-        log('Failed to store token in sessionStorage');
-        throw new Error('Failed to store token in sessionStorage');
-      }
-      
-      log('Access token successfully stored in sessionStorage');
-    } catch (storageError) {
-      log('Error storing token in sessionStorage:', storageError);
-      console.error('Unable to store access token. This may be due to browser privacy settings.');
-      // Continue anyway since we have the token in memory for this session
+      throw new Error(`Token exchange failed: ${response.status} - ${errorDetail}`);
     }
     
-    return access_token;
+    // Parse the successful response
+    const tokenData = await response.json();
+    console.log('Token exchange successful');
+    
+    // Validate we received an access token
+    if (!tokenData.access_token) {
+      throw new Error('Access token missing from response');
+    }
+    
+    // Store the token securely
+    sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokenData.access_token);
+    
+    // Clean up storage 
+    sessionStorage.removeItem(STORAGE_KEYS.CODE_VERIFIER);
+    
+    console.log('Access token successfully stored');
+    return tokenData.access_token;
   } catch (error) {
-    log('Error in getAccessToken function:', error);
-    console.error('Error getting access token:', error.message || error);
+    console.error('Token exchange failed:', error);
     throw error;
   }
 };
