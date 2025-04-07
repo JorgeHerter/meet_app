@@ -325,7 +325,12 @@ export const handleOAuthRedirect = async () => {
     try {
       const accessToken = await getAccessToken(code);
       console.log('Access token received:', accessToken);
-      removeQueryParams(); // Clean up the URL
+
+      // Store the access token in sessionStorage
+      sessionStorage.setItem('access_token', accessToken);
+
+      // Clean up the URL to remove the authorization code
+      removeQueryParams();
     } catch (error) {
       console.error('Error exchanging code for access token:', error.message || error);
       alert('Failed to complete login. Please try again.');
