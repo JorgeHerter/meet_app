@@ -285,13 +285,15 @@ export const getAccessToken = async (code) => {
       throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
     }
 
-    const { access_token } = await response.json();
+    const result = await response.json();
+    console.log('Backend response:', result); // Log the full response
+
+    const { access_token } = result;
     if (!access_token) {
       throw new Error('Access token missing from response');
     }
 
-    // Store the confirmed token in sessionStorage
-    sessionStorage.setItem('access_token', access_token);
+    sessionStorage.setItem('access_token', access_token); // Store the token in sessionStorage
     console.log('Access token stored in sessionStorage:', access_token);
     return access_token;
   } catch (error) {
