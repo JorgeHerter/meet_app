@@ -278,8 +278,11 @@ export const getAccessToken = async (code) => {
     console.log('Fetching access token with code:', code);
     const response = await fetch(`${API_BASE_URL}/api/token/${encodeURIComponent(code)}`);
     console.log('Response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text(); // Capture the error response body
+      console.error('Error response from backend:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
     }
 
     const { access_token } = await response.json();
@@ -291,7 +294,7 @@ export const getAccessToken = async (code) => {
     console.log('Access token stored in sessionStorage:', access_token);
     return access_token;
   } catch (error) {
-    console.error('Error getting access token:', error);
+    console.error('Error getting access token:', error.message || error);
     throw error;
   }
 };
@@ -302,7 +305,6 @@ export const removeQueryParams = () => {
   window.history.pushState({}, document.title, newUrl);
   console.log('Cleaned URL:', newUrl);
 };
-
 // Function to initiate OAuth process
 export const startOAuthProcess = async () => {
   try {
@@ -323,9 +325,9 @@ export const handleOAuthRedirect = async () => {
     try {
       const accessToken = await getAccessToken(code);
       console.log('Access token received:', accessToken);
-      removeQueryParams();
+      removeQueryParams(); // Clean up the URL
     } catch (error) {
-      console.error('Error exchanging code for access token:', error);
+      console.error('Error exchanging code for access token:', error.message || error);
       alert('Failed to complete login. Please try again.');
     }
   } else {
@@ -339,7 +341,6 @@ export const handleOAuthRedirect = async () => {
     }
   }
 };
-
 // Automatically handle OAuth redirect if a code is present in the URL
 if (new URLSearchParams(window.location.search).has('code')) {
   handleOAuthRedirect();
