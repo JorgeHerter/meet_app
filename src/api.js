@@ -193,9 +193,11 @@ import mockData from './mock-data';
 // Set API_BASE_URL based on the environment
 const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev';
 
-// Flag to track authentication state
+// Authentication state tracking
 let isAuthenticating = false;
 let isOAuthHandled = false;
+let authErrorCount = 0;
+const MAX_AUTH_ERRORS = 2; // Prevent infinite auth attempts
 
 // Utility function to extract unique locations from the events array
 export const extractLocations = (events) => {
@@ -234,9 +236,19 @@ const checkToken = async (accessToken) => {
 
 // Function to get events from AWS Lambda
 export const getEvents = async () => {
+  // If we've had multiple auth errors, just use mock data to avoid infinite loops
+  if (authErrorCount >= MAX_AUTH_ERRORS) {
+    console.warn('Too many authentication failures, using mock data');
+    return mockData;
+  }
+
   // First check if we need to handle an OAuth redirect
   if (new URLSearchParams(window.location.search).has('code') && !isOAuthHandled) {
-    await handleOAuthRedirect();
+    const handled = await handleOAuthRedirect();
+    if (!handled) {
+      // If redirect handling failed, use mock data
+      return mockData;
+    }
   }
 
   // Check if we have a token
@@ -245,7 +257,12 @@ export const getEvents = async () => {
   // If no token is available and we're not already authenticating, start the auth process
   if (!token && !isAuthenticating) {
     isAuthenticating = true;
-    await startOAuthProcess();
+    try {
+      await startOAuthProcess();
+    } catch (e) {
+      isAuthenticating = false;
+      authErrorCount++;
+    }
     return mockData; // Return mock data while authentication is in progress
   }
 
@@ -259,10 +276,16 @@ export const getEvents = async () => {
     // Validate the token first
     const isValid = await checkToken(token);
     if (!isValid) {
-      // If token is invalid, clear it and restart auth
+      // If token is invalid, clear it and restart auth if we haven't had too many errors
       sessionStorage.removeItem('access_token');
-      isAuthenticating = true;
-      await startOAuthProcess();
+      
+      if (authErrorCount < MAX_AUTH_ERRORS) {
+        isAuthenticating = true;
+        await startOAuthProcess();
+      } else {
+        console.warn('Too many authentication failures, using mock data');
+      }
+      
       return mockData;
     }
 
@@ -275,6 +298,8 @@ export const getEvents = async () => {
     }
 
     const { events } = await response.json();
+    // Reset error count on success
+    authErrorCount = 0;
     return events;
   } catch (error) {
     console.error('Error fetching events:', error);
@@ -288,8 +313,24 @@ export const getAccessToken = async (code) => {
     const url = `${API_BASE_URL}/api/token/${encodeURIComponent(code)}`;
     const response = await fetch(url);
 
+    // Check for error responses
     if (!response.ok) {
-      const errorData = await response.json();
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: `HTTP error ${response.status}` };
+      }
+      
+      // Special handling for redirect_uri_mismatch error
+      if (errorData.error === 'redirect_uri_mismatch') {
+        console.error('OAuth configuration error: The redirect URI in your Google API Console does not match the URL of your application.');
+        alert('Authentication error: The app is not properly configured in Google API Console. Please contact the administrator.');
+        // Increment error count to prevent infinite loops
+        authErrorCount++;
+        throw new Error('OAuth configuration error: redirect_uri_mismatch');
+      }
+      
       throw new Error(errorData.message || 'Failed to get access token');
     }
 
@@ -305,7 +346,13 @@ export const getAccessToken = async (code) => {
   } catch (error) {
     console.error('Error getting access token:', error);
     isAuthenticating = false;
-    alert(`Authentication error: ${error.message || 'Unable to log in. Please try again.'}`);
+    authErrorCount++;
+    
+    // Don't show alert for configuration errors as we already handled those
+    if (!error.message?.includes('OAuth configuration error')) {
+      alert(`Authentication error: Unable to log in. Please try again.`);
+    }
+    
     throw error;
   }
 };
@@ -328,7 +375,9 @@ export const startOAuthProcess = async () => {
   } catch (error) {
     console.error('Error starting OAuth process:', error);
     isAuthenticating = false;
+    authErrorCount++;
     alert('Failed to start OAuth process. Please try again.');
+    throw error;
   }
 };
 
@@ -369,6 +418,8 @@ export const initializeApp = () => {
     // Handle the OAuth redirect
     handleOAuthRedirect().then(() => {
       console.log('OAuth redirect handling complete');
+    }).catch(err => {
+      console.error('OAuth redirect handling failed:', err);
     });
   }
 };
