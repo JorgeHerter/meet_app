@@ -192,9 +192,9 @@ import mockData from './mock-data';
 
 // Set API_BASE_URL based on the environment
 const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev';
-console.log('API_BASE_URL at initialization:', API_BASE_URL); // Debug log
 
-// Flag to track if OAuth redirect has been handled
+// Flag to track authentication state
+let isAuthenticating = false;
 let isOAuthHandled = false;
 
 // Utility function to extract unique locations from the events array
@@ -206,13 +206,11 @@ export const extractLocations = (events) => {
 // Function to get the Google OAuth URL
 export const getAuthURL = async () => {
   try {
-    console.log('Fetching OAuth URL...');
     const response = await fetch(`${API_BASE_URL}/api/get-auth-url`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const { authUrl } = await response.json();
-    console.log('Auth URL:', authUrl);
     return authUrl;
   } catch (error) {
     console.error('Error getting auth URL:', error);
@@ -223,12 +221,10 @@ export const getAuthURL = async () => {
 // Function to check if the access token is valid
 const checkToken = async (accessToken) => {
   try {
-    console.log('Checking token validity...');
     const response = await fetch(
       `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`
     );
     const result = await response.json();
-    console.log('Token check response:', result);
     return !result.error;
   } catch (error) {
     console.error('Error validating token:', error);
@@ -238,43 +234,50 @@ const checkToken = async (accessToken) => {
 
 // Function to get events from AWS Lambda
 export const getEvents = async () => {
-  if (new URLSearchParams(window.location.search).has('code')) {
-    console.log('Auth code detected in URL, waiting for token processing...');
+  // First check if we need to handle an OAuth redirect
+  if (new URLSearchParams(window.location.search).has('code') && !isOAuthHandled) {
     await handleOAuthRedirect();
   }
 
+  // Check if we have a token
   const token = sessionStorage.getItem('access_token');
-  console.log('Access token from sessionStorage:', token);
 
-  if (!token) {
-    console.log('No access token found. Starting OAuth process...');
+  // If no token is available and we're not already authenticating, start the auth process
+  if (!token && !isAuthenticating) {
+    isAuthenticating = true;
     await startOAuthProcess();
     return mockData; // Return mock data while authentication is in progress
   }
 
+  // If we're in the middle of authenticating, return mock data
+  if (isAuthenticating) {
+    return mockData;
+  }
+
+  // We have a token, try to use it
   try {
+    // Validate the token first
     const isValid = await checkToken(token);
     if (!isValid) {
-      console.log('Invalid access token. Removing token and restarting OAuth process...');
+      // If token is invalid, clear it and restart auth
       sessionStorage.removeItem('access_token');
+      isAuthenticating = true;
       await startOAuthProcess();
       return mockData;
     }
 
+    // Token is valid, fetch events
     const url = `${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`;
-    console.log('Fetching events from:', url);
-
     const response = await fetch(url);
+    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const { events } = await response.json();
-    console.log('Fetched events:', events);
     return events;
   } catch (error) {
     console.error('Error fetching events:', error);
-    alert('Error fetching events. Using mock data.');
     return mockData;
   }
 };
@@ -282,16 +285,11 @@ export const getEvents = async () => {
 // Function to get access token from AWS Lambda
 export const getAccessToken = async (code) => {
   try {
-    console.log('Fetching access token with code:', code);
     const url = `${API_BASE_URL}/api/token/${encodeURIComponent(code)}`;
-    console.log('Request URL:', url);
-
     const response = await fetch(url);
-    console.log('Response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Error response from backend:', errorData);
       throw new Error(errorData.message || 'Failed to get access token');
     }
 
@@ -300,77 +298,78 @@ export const getAccessToken = async (code) => {
       throw new Error('Access token missing from response');
     }
 
-    sessionStorage.setItem('access_token', access_token); // Store the access token
-    console.log('Access token stored in sessionStorage:', access_token);
+    // Store the token and reset authentication flags
+    sessionStorage.setItem('access_token', access_token);
+    isAuthenticating = false;
     return access_token;
   } catch (error) {
     console.error('Error getting access token:', error);
+    isAuthenticating = false;
     alert(`Authentication error: ${error.message || 'Unable to log in. Please try again.'}`);
     throw error;
   }
 };
 
-// Function to clean up URL query parameters (e.g., after OAuth redirect)
+// Function to clean up URL query parameters
 export const removeQueryParams = () => {
   const newUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
   window.history.pushState({}, document.title, newUrl);
-  console.log('Cleaned URL:', newUrl);
 };
 
 // Function to initiate OAuth process
 export const startOAuthProcess = async () => {
   try {
-    const authUrl = await getAuthURL();
-    console.log('Redirecting to auth URL:', authUrl);
-    window.location.href = authUrl;
+    // Only start if we're not already authenticating
+    if (!isAuthenticating) {
+      isAuthenticating = true;
+      const authUrl = await getAuthURL();
+      window.location.href = authUrl;
+    }
   } catch (error) {
     console.error('Error starting OAuth process:', error);
+    isAuthenticating = false;
     alert('Failed to start OAuth process. Please try again.');
   }
 };
 
 // Function to handle the OAuth process after redirect
 export const handleOAuthRedirect = async () => {
+  // Prevent multiple processing of the same code
   if (isOAuthHandled) {
-    console.log('OAuth redirect already handled. Skipping...');
     return false;
   }
 
   const code = new URLSearchParams(window.location.search).get('code');
   if (code) {
-    console.log('Authorization code received:', code);
     try {
-      isOAuthHandled = true; // Set the flag to prevent re-processing
+      isOAuthHandled = true;
+      isAuthenticating = true;
+      
       await getAccessToken(code);
-
-      // Verify token storage after a short delay to ensure browser storage is updated
-      setTimeout(() => {
-        const token = sessionStorage.getItem('access_token');
-        console.log('Verification: access token from sessionStorage after storing:', token);
-      }, 100);
-
-      // Clean up the URL by removing the code parameter
+      
+      // Clean up the URL
       removeQueryParams();
+      isAuthenticating = false;
       return true;
     } catch (error) {
       console.error('Error handling OAuth redirect:', error);
-      alert('Failed to complete login. Please try again.');
-      isOAuthHandled = false; // Reset the flag in case of an error
+      isOAuthHandled = false;
+      isAuthenticating = false;
       return false;
     }
   } else {
-    console.log('No authorization code found in URL.');
     return false;
   }
 };
 
-// Initialize the application - this only runs on script load
+// Initialize the application
 export const initializeApp = () => {
-  if (new URLSearchParams(window.location.search).has('code')) {
-    console.log('Auth code detected in URL, handling OAuth redirect...');
-    handleOAuthRedirect();
-  } else {
-    console.log('No authorization code found in URL. Application ready.');
+  // Check if we're returning from an OAuth redirect
+  if (new URLSearchParams(window.location.search).has('code') && !isOAuthHandled) {
+    // Handle the OAuth redirect
+    handleOAuthRedirect().then(() => {
+      console.log('OAuth redirect handling complete');
+    });
   }
 };
 
