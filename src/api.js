@@ -273,6 +273,80 @@ export const getAccessToken = async (code) => {
 };
 
 /**
+ * Validate the current access token
+ */
+const validateToken = async (accessToken) => {
+  if (!accessToken) return false;
+
+  debug('Validating token');
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`
+    );
+
+    if (!response.ok) {
+      debug('Token validation failed', response.status);
+      return false;
+    }
+
+    const result = await response.json();
+    const isValid = !result.error;
+    debug('Token validation result', isValid);
+    return isValid;
+  } catch (error) {
+    console.error('Token validation error:', error);
+    return false;
+  }
+};
+
+/**
+ * Fetch events from the API
+ */
+export const getEvents = async () => {
+  debug('Getting events, auth state:', authState);
+
+  // If too many auth failures, use mock data
+  if (authState.authErrorCount >= MAX_AUTH_RETRIES) {
+    debug('Too many auth failures, using mock data');
+    return mockData;
+  }
+
+  const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  debug('Access token from sessionStorage:', token);
+
+  if (!token) {
+    debug('No token available, starting auth flow');
+    await startOAuthProcess();
+    return mockData;
+  }
+
+  try {
+    const isValid = await validateToken(token);
+    if (!isValid) {
+      debug('Token is invalid, clearing and restarting auth');
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+      await startOAuthProcess();
+      return mockData;
+    }
+
+    const url = `${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`;
+    debug('Fetching events from:', url);
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Events request failed: ${response.status}`);
+    }
+
+    const { events } = await response.json();
+    debug('Successfully fetched events', events.length);
+    return events;
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    return mockData;
+  }
+};
+
+/**
  * Clean up URL parameters after OAuth redirect
  */
 export const removeQueryParams = () => {
