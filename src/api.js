@@ -199,20 +199,12 @@ const MAX_AUTH_RETRIES = 2;
 // Authentication state tracking
 let authState = {
   isAuthenticating: false,
-  authErrorCount: 0
+  authErrorCount: 0,
 };
 
 // Debug logger
 const debug = (message, data) => {
   console.log(`[MeetApp] ${message}`, data || '');
-};
-
-/**
- * Extract unique locations from events array
- */
-export const extractLocations = (events) => {
-  const locations = events.map((event) => event.location);
-  return [...new Set(locations)];
 };
 
 /**
@@ -235,169 +227,18 @@ export const getAuthURL = async () => {
 };
 
 /**
- * Validate the current access token
+ * Start the OAuth authentication process
  */
-const validateToken = async (accessToken) => {
-  if (!accessToken) return false;
-  
-  debug('Validating token');
+export const startOAuthProcess = async () => {
+  debug('Starting OAuth process');
   try {
-    const response = await fetch(
-      `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`
-    );
-    
-    if (!response.ok) {
-      debug('Token validation failed', response.status);
-      return false;
-    }
-    
-    const result = await response.json();
-    const isValid = !result.error;
-    debug('Token validation result', isValid);
-    return isValid;
+    const authUrl = await getAuthURL();
+    debug('Redirecting to auth URL', authUrl);
+    window.location.href = authUrl; // Redirect to the Google OAuth URL
   } catch (error) {
-    console.error('Token validation error:', error);
-    return false;
-  }
-};
-
-/**
- * Check if we're currently processing a code
- */
-const isCodeAlreadyProcessed = (code) => {
-  const processedCode = sessionStorage.getItem(CODE_PROCESSED_KEY);
-  return processedCode === code;
-};
-
-/**
- * Mark a code as processed to prevent loops
- */
-const markCodeAsProcessed = (code) => {
-  sessionStorage.setItem(CODE_PROCESSED_KEY, code);
-};
-
-/**
- * Fetch events from the API
- */
-export const getEvents = async () => {
-  debug('Getting events, auth state:', authState);
-  
-  // If too many auth failures, use mock data
-  if (authState.authErrorCount >= MAX_AUTH_RETRIES) {
-    debug('Too many auth failures, using mock data');
-    return mockData;
-  }
-
-  // Check for OAuth redirect code
-  const urlParams = new URLSearchParams(window.location.search);
-  const code = urlParams.get('code');
-  
-  if (code) {
-    debug('Detected OAuth code in URL', code);
-    
-    // Prevent processing the same code multiple times
-    if (isCodeAlreadyProcessed(code)) {
-      debug('This code has already been processed, skipping');
-    } else {
-      try {
-        debug('Processing new auth code');
-        markCodeAsProcessed(code);
-        authState.isAuthenticating = true;
-        
-        const token = await getAccessToken(code);
-        removeQueryParams();
-        
-        // If we got a token, try to use it immediately
-        if (token) {
-          debug('Successfully obtained token, fetching events');
-          authState.isAuthenticating = false;
-          
-          try {
-            const url = `${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`;
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-              throw new Error(`Events request failed: ${response.status}`);
-            }
-            
-            const { events } = await response.json();
-            debug('Successfully fetched events', events.length);
-            
-            // Reset error count on success
-            authState.authErrorCount = 0;
-            return events;
-          } catch (error) {
-            console.error('Error fetching events with new token:', error);
-            return mockData;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to process auth code:', error);
-        authState.isAuthenticating = false;
-      }
-    }
-  }
-
-  // Get current token
-  const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
-  debug('Current token status', token ? 'exists' : 'missing');
-
-  // No token and not currently authenticating
-  if (!token && !authState.isAuthenticating) {
-    debug('No token available, starting auth flow');
-    try {
-      authState.isAuthenticating = true;
-      await startOAuthProcess();
-      // Auth process will redirect, but in case it doesn't:
-      return mockData;
-    } catch (error) {
-      authState.isAuthenticating = false;
-      authState.authErrorCount++;
-      console.error('Auth process failed:', error);
-      return mockData;
-    }
-  }
-
-  // If authentication is in progress
-  if (authState.isAuthenticating) {
-    debug('Authentication in progress, using mock data');
-    return mockData;
-  }
-
-  // We have a token, let's try to use it
-  try {
-    // First validate the token
-    const isValid = await validateToken(token);
-    if (!isValid) {
-      debug('Token is invalid, clearing and restarting auth');
-      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-      
-      if (authState.authErrorCount < MAX_AUTH_RETRIES) {
-        authState.isAuthenticating = true;
-        await startOAuthProcess();
-      }
-      
-      return mockData;
-    }
-
-    // Token is valid, fetch the events
-    debug('Fetching events with valid token');
-    const url = `${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`;
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Events request failed: ${response.status}`);
-    }
-
-    const { events } = await response.json();
-    debug('Successfully fetched events', events.length);
-    
-    // Reset error count on success
-    authState.authErrorCount = 0;
-    return events;
-  } catch (error) {
-    console.error('Error fetching events:', error);
-    return mockData;
+    console.error('Failed to start OAuth process:', error);
+    alert('Failed to start authentication. Please try again.');
+    throw error;
   }
 };
 
@@ -409,54 +250,24 @@ export const getAccessToken = async (code) => {
   try {
     const url = `${API_BASE_URL}/api/token/${encodeURIComponent(code)}`;
     debug('Token request URL:', url);
-    
-    const response = await fetch(url);
-    debug('Token response status:', response.status);
 
+    const response = await fetch(url);
     if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-        debug('Token error response:', errorData);
-      } catch (e) {
-        errorData = { message: `HTTP error ${response.status}` };
-        debug('Failed to parse error response');
-      }
-      
-      // Check for specific OAuth configuration errors
-      if (errorData.error === 'redirect_uri_mismatch') {
-        console.error('OAuth configuration error: redirect_uri_mismatch');
-        alert('Authentication error: The app is not properly configured in Google API Console. Please contact the administrator.');
-        authState.authErrorCount++;
-        throw new Error('OAuth configuration error: redirect_uri_mismatch');
-      }
-      
+      const errorData = await response.json();
+      debug('Token error response:', errorData);
       throw new Error(errorData.message || 'Failed to get access token');
     }
 
-    const responseData = await response.json();
-    debug('Token response data:', responseData);
-    
-    const { access_token } = responseData;
+    const { access_token } = await response.json();
     if (!access_token) {
       throw new Error('Access token missing from response');
     }
 
     debug('Successfully received access token');
-    
-    // Store token in session storage for future use
-    sessionStorage.setItem(TOKEN_STORAGE_KEY, access_token);
-    
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, access_token); // Store token in session storage
     return access_token;
   } catch (error) {
     console.error('Error getting access token:', error);
-    authState.authErrorCount++;
-    
-    // Don't show alert for already handled errors
-    if (!error.message?.includes('OAuth configuration error')) {
-      alert('Authentication error: Unable to log in. Please try again.');
-    }
-    
     throw error;
   }
 };
@@ -471,74 +282,26 @@ export const removeQueryParams = () => {
 };
 
 /**
- * Start the OAuth authentication process
+ * Initialize the app
  */
-export const startOAuthProcess = async () => {
-  debug('Starting OAuth process');
-  try {
-    if (!authState.isAuthenticating) {
-      authState.isAuthenticating = true;
-      const authUrl = await getAuthURL();
-      debug('Redirecting to auth URL', authUrl);
-      window.location.href = authUrl;
-    }
-  } catch (error) {
-    console.error('Failed to start OAuth process:', error);
-    authState.isAuthenticating = false;
-    authState.authErrorCount++;
-    alert('Failed to start authentication. Please try again.');
-    throw error;
-  }
-};
-
-/**
- * Reset authentication state (for testing)
- */
-export const resetAuth = () => {
-  debug('Manually resetting auth state');
-  sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-  sessionStorage.removeItem(CODE_PROCESSED_KEY);
-  authState = {
-    isAuthenticating: false,
-    authErrorCount: 0
-  };
-  // Reload page without query parameters
-  window.location.href = window.location.protocol + '//' + window.location.host + window.location.pathname;
-};
-
-/**
- * Debug function to show current auth state
- */
-export const debugAuthState = () => {
-  const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
-  const processedCode = sessionStorage.getItem(CODE_PROCESSED_KEY);
-  
-  console.log('=== AUTH DEBUG INFO ===');
-  console.log('Token exists:', !!token);
-  console.log('Processed code:', processedCode);
-  console.log('Auth state:', authState);
-  console.log('======================');
-};
-
-// Initialize the app
 (function initializeApp() {
-  debug('API_BASE_URL at initialization:', API_BASE_URL);
-  
-  // Check for OAuth redirect
+  debug('Initializing app...');
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
-  
+
   if (code) {
     debug('Auth code detected in URL, handling OAuth redirect...');
-    debug('Authorization code received:', code);
-    
-    // The getEvents function will handle the code processing
-    getEvents().then(events => {
-      debug('Initial events loaded:', events.length);
-    }).catch(err => {
-      console.error('Error loading initial events:', err);
-    });
+    getAccessToken(code)
+      .then(() => {
+        debug('Access token successfully obtained');
+        removeQueryParams(); // Clean up the URL
+      })
+      .catch((error) => {
+        console.error('Error during OAuth redirect handling:', error);
+        alert('Failed to complete authentication. Please try again.');
+      });
   } else {
-    debug('No OAuth code in URL');
+    debug('No auth code in URL, starting OAuth process...');
+    startOAuthProcess(); // Start the OAuth process if no code is present
   }
 })();
