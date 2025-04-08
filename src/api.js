@@ -199,7 +199,7 @@ const MAX_AUTH_RETRIES = 2;
 // Authentication state tracking
 let authState = {
   isAuthenticating: false,
-  authErrorCount: 0
+  authErrorCount: 0,
 };
 
 // Debug logger
@@ -239,18 +239,18 @@ export const getAuthURL = async () => {
  */
 const validateToken = async (accessToken) => {
   if (!accessToken) return false;
-  
+
   debug('Validating token');
   try {
     const response = await fetch(
       `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`
     );
-    
+
     if (!response.ok) {
       debug('Token validation failed', response.status);
       return false;
     }
-    
+
     const result = await response.json();
     const isValid = !result.error;
     debug('Token validation result', isValid);
@@ -281,7 +281,7 @@ const markCodeAsProcessed = (code) => {
  */
 export const getEvents = async () => {
   debug('Getting events, auth state:', authState);
-  
+
   // If too many auth failures, use mock data
   if (authState.authErrorCount >= MAX_AUTH_RETRIES) {
     debug('Too many auth failures, using mock data');
@@ -291,10 +291,10 @@ export const getEvents = async () => {
   // Check for OAuth redirect code
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
-  
+
   if (code) {
     debug('Detected OAuth code in URL', code);
-    
+
     // Prevent processing the same code multiple times
     if (isCodeAlreadyProcessed(code)) {
       debug('This code has already been processed, skipping');
@@ -303,26 +303,26 @@ export const getEvents = async () => {
         debug('Processing new auth code');
         markCodeAsProcessed(code);
         authState.isAuthenticating = true;
-        
+
         const token = await getAccessToken(code);
         removeQueryParams();
-        
+
         // If we got a token, try to use it immediately
         if (token) {
           debug('Successfully obtained token, fetching events');
           authState.isAuthenticating = false;
-          
+
           try {
             const url = `${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`;
             const response = await fetch(url);
-            
+
             if (!response.ok) {
               throw new Error(`Events request failed: ${response.status}`);
             }
-            
+
             const { events } = await response.json();
             debug('Successfully fetched events', events.length);
-            
+
             // Reset error count on success
             authState.authErrorCount = 0;
             return events;
@@ -371,12 +371,12 @@ export const getEvents = async () => {
     if (!isValid) {
       debug('Token is invalid, clearing and restarting auth');
       sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-      
+
       if (authState.authErrorCount < MAX_AUTH_RETRIES) {
         authState.isAuthenticating = true;
         await startOAuthProcess();
       }
-      
+
       return mockData;
     }
 
@@ -384,14 +384,14 @@ export const getEvents = async () => {
     debug('Fetching events with valid token');
     const url = `${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`;
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Events request failed: ${response.status}`);
     }
 
     const { events } = await response.json();
     debug('Successfully fetched events', events.length);
-    
+
     // Reset error count on success
     authState.authErrorCount = 0;
     return events;
@@ -409,54 +409,27 @@ export const getAccessToken = async (code) => {
   try {
     const url = `${API_BASE_URL}/api/token/${encodeURIComponent(code)}`;
     debug('Token request URL:', url);
-    
+
     const response = await fetch(url);
     debug('Token response status:', response.status);
 
     if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-        debug('Token error response:', errorData);
-      } catch (e) {
-        errorData = { message: `HTTP error ${response.status}` };
-        debug('Failed to parse error response');
-      }
-      
-      // Check for specific OAuth configuration errors
-      if (errorData.error === 'redirect_uri_mismatch') {
-        console.error('OAuth configuration error: redirect_uri_mismatch');
-        alert('Authentication error: The app is not properly configured in Google API Console. Please contact the administrator.');
-        authState.authErrorCount++;
-        throw new Error('OAuth configuration error: redirect_uri_mismatch');
-      }
-      
+      const errorData = await response.json();
+      debug('Token error response:', errorData);
       throw new Error(errorData.message || 'Failed to get access token');
     }
 
-    const responseData = await response.json();
-    debug('Token response data:', responseData);
-    
-    const { access_token } = responseData;
+    const { access_token } = await response.json();
     if (!access_token) {
       throw new Error('Access token missing from response');
     }
 
     debug('Successfully received access token');
-    
-    // Store token in session storage for future use
     sessionStorage.setItem(TOKEN_STORAGE_KEY, access_token);
-    
     return access_token;
   } catch (error) {
     console.error('Error getting access token:', error);
     authState.authErrorCount++;
-    
-    // Don't show alert for already handled errors
-    if (!error.message?.includes('OAuth configuration error')) {
-      alert('Authentication error: Unable to log in. Please try again.');
-    }
-    
     throw error;
   }
 };
@@ -492,50 +465,20 @@ export const startOAuthProcess = async () => {
 };
 
 /**
- * Reset authentication state (for testing)
+ * Initialize the app
  */
-export const resetAuth = () => {
-  debug('Manually resetting auth state');
-  sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-  sessionStorage.removeItem(CODE_PROCESSED_KEY);
-  authState = {
-    isAuthenticating: false,
-    authErrorCount: 0
-  };
-  // Reload page without query parameters
-  window.location.href = window.location.protocol + '//' + window.location.host + window.location.pathname;
-};
-
-/**
- * Debug function to show current auth state
- */
-export const debugAuthState = () => {
-  const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
-  const processedCode = sessionStorage.getItem(CODE_PROCESSED_KEY);
-  
-  console.log('=== AUTH DEBUG INFO ===');
-  console.log('Token exists:', !!token);
-  console.log('Processed code:', processedCode);
-  console.log('Auth state:', authState);
-  console.log('======================');
-};
-
-// Initialize the app
 (function initializeApp() {
   debug('API_BASE_URL at initialization:', API_BASE_URL);
-  
+
   // Check for OAuth redirect
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
-  
+
   if (code) {
     debug('Auth code detected in URL, handling OAuth redirect...');
-    debug('Authorization code received:', code);
-    
-    // The getEvents function will handle the code processing
-    getEvents().then(events => {
+    getEvents().then((events) => {
       debug('Initial events loaded:', events.length);
-    }).catch(err => {
+    }).catch((err) => {
       console.error('Error loading initial events:', err);
     });
   } else {
