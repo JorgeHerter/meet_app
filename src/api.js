@@ -281,44 +281,51 @@ export const isAuthenticated = async () => {
   return true;
 };
 
-// Function to get events from AWS Lambda
-export const getEvents = async () => {
-  console.log('Getting events...');
-  
+// Function to ensure authentication before proceeding
+export const ensureAuthenticated = async () => {
   // If there's an OAuth code in the URL and we haven't handled it yet,
-  // wait for the handleOAuthRedirect to complete
+  // handle it first
   if (new URLSearchParams(window.location.search).has('code') && !isOAuthHandled) {
-    console.log('Waiting for OAuth redirect handling to complete...');
-    try {
-      await handleOAuthRedirect();
-      console.log('OAuth handling done, proceeding with getEvents');
-    } catch (error) {
-      console.error('OAuth handling failed, cannot proceed with getEvents:', error);
-      throw new Error('Authentication failed, please try again');
-    }
+    console.log('OAuth code detected, handling redirect...');
+    await handleOAuthRedirect();
   }
 
-  // If an authentication process is in progress, wait for it to complete
+  // If an authentication process is already in progress, wait for it
   if (authPromise) {
     try {
-      console.log('Authentication in progress, waiting for completion...');
+      console.log('Authentication in progress, waiting...');
       await authPromise;
-      console.log('Authentication process completed');
     } catch (error) {
       console.error('Authentication process failed:', error);
       throw new Error('Authentication failed, please try again');
     }
   }
 
-  // Check authentication status
+  // Check if we're authenticated now
   const authenticated = await isAuthenticated();
   if (!authenticated) {
     console.log('Not authenticated, starting auth flow...');
     await startOAuthProcess();
-    throw new Error('Authentication required to fetch events');
+    // This point won't be reached if startOAuthProcess redirects
+    throw new Error('Authentication required');
   }
 
-  // Fetch events with valid token
+  return true;
+};
+
+// Function to get events from AWS Lambda
+export const getEvents = async () => {
+  console.log('Getting events...');
+  
+  // Ensure authentication before proceeding
+  try {
+    await ensureAuthenticated();
+  } catch (error) {
+    console.error('Authentication check failed:', error);
+    throw error;
+  }
+
+  // We're now authenticated, get the token
   const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
   try {
     const url = `${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`;
@@ -401,6 +408,9 @@ export const startOAuthProcess = async () => {
     const authUrl = await getAuthURL();
     console.log('Redirecting to auth URL:', authUrl);
     window.location.href = authUrl;
+    
+    // Return a never-resolving promise since we're redirecting
+    return new Promise(() => {});
   } catch (error) {
     isAuthenticating = false;
     console.error('Failed to start OAuth process:', error);
@@ -465,13 +475,13 @@ export const logout = async () => {
   isAuthenticating = false;
 };
 
-// Initialize the application
+// Initialize the application - on load, check auth state
 export const initializeApp = async () => {
   console.log('Initializing app...');
   
   if (new URLSearchParams(window.location.search).has('code')) {
-    // Start the auth handling process but don't block initialization
-    console.log('Code detected in URL, starting OAuth handling');
+    // Handle OAuth redirect if there's a code in the URL
+    console.log('Code detected in URL, handling OAuth redirect');
     handleOAuthRedirect()
       .then(() => {
         console.log('OAuth redirect handling complete in initialization');
@@ -480,14 +490,35 @@ export const initializeApp = async () => {
         console.error('OAuth redirect handling failed in initialization:', error);
       });
   } else {
-    // Just check if we have a valid authentication
+    // Check if we're authenticated
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      console.log('No valid authentication found during initialization');
-      // The actual auth flow will be triggered when API calls are made
+      console.log('No valid authentication during initialization, authentication will be required before API calls');
+      // Authentication will be required when making API calls
     }
+  }
+};
+
+// Force authentication immediately on page load
+export const forceAuthenticationOnLoad = async () => {
+  try {
+    // Short timeout to let the app initialize
+    await new Promise(resolve => setTimeout(resolve, 100));
+    console.log('Checking authentication on load...');
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      console.log('No valid authentication found, starting auth flow immediately');
+      await startOAuthProcess();
+    } else {
+      console.log('Already authenticated');
+    }
+  } catch (error) {
+    console.error('Authentication check failed:', error);
   }
 };
 
 // Run initialization
 initializeApp();
+
+// Force authentication check immediately
+forceAuthenticationOnLoad();
