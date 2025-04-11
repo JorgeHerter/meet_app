@@ -197,6 +197,7 @@ const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev
 let isAuthenticating = false;
 let isOAuthHandled = false;
 let authPromise = null;
+let authInitiated = false;
 
 // Constants
 const AUTH_STORAGE_KEY = 'access_token';
@@ -402,6 +403,7 @@ export const startOAuthProcess = async () => {
   if (isAuthenticating) return;
   
   isAuthenticating = true;
+  authInitiated = true;
   console.log('Starting OAuth process...');
   
   try {
@@ -473,14 +475,15 @@ export const logout = async () => {
   authPromise = null;
   isOAuthHandled = false;
   isAuthenticating = false;
+  authInitiated = false;
 };
 
 // Initialize the application - on load, check auth state
 export const initializeApp = async () => {
   console.log('Initializing app...');
   
+  // Handle OAuth redirect if there's a code in the URL
   if (new URLSearchParams(window.location.search).has('code')) {
-    // Handle OAuth redirect if there's a code in the URL
     console.log('Code detected in URL, handling OAuth redirect');
     handleOAuthRedirect()
       .then(() => {
@@ -489,36 +492,41 @@ export const initializeApp = async () => {
       .catch((error) => {
         console.error('OAuth redirect handling failed in initialization:', error);
       });
-  } else {
-    // Check if we're authenticated
-    const authenticated = await isAuthenticated();
-    if (!authenticated) {
-      console.log('No valid authentication during initialization, authentication will be required before API calls');
-      // Authentication will be required when making API calls
-    }
+    return;
   }
+  
+  // Force immediate authentication check if not handling a redirect
+  forceImmediateAuthentication();
 };
 
-// Force authentication immediately on page load
-export const forceAuthenticationOnLoad = async () => {
+// Force authentication immediately on page load as the very first step
+export const forceImmediateAuthentication = async () => {
+  // If we've already initiated auth process, don't do it again
+  if (authInitiated) {
+    console.log('Authentication already initiated, skipping additional check');
+    return;
+  }
+  
+  console.log('Checking authentication as first step...');
   try {
-    // Short timeout to let the app initialize
-    await new Promise(resolve => setTimeout(resolve, 100));
-    console.log('Checking authentication on load...');
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      console.log('No valid authentication found, starting auth flow immediately');
+      console.log('No valid authentication found, redirecting to auth immediately');
       await startOAuthProcess();
     } else {
-      console.log('Already authenticated');
+      console.log('Already authenticated, proceeding with app');
     }
   } catch (error) {
     console.error('Authentication check failed:', error);
   }
 };
 
-// Run initialization
-initializeApp();
+// Run initialization immediately
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM loaded, initializing authentication flow');
+  initializeApp();
+});
 
-// Force authentication check immediately
-forceAuthenticationOnLoad();
+// Force immediate authentication check before anything else
+// This runs immediately during script load
+forceImmediateAuthentication();
