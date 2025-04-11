@@ -196,8 +196,10 @@ const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev
 // Authentication state tracking
 let isAuthenticating = false;
 let isOAuthHandled = false;
-let authErrorCount = 0;
-const MAX_AUTH_ERRORS = 2; // Prevent infinite auth attempts
+
+// Constants
+const AUTH_STORAGE_KEY = 'access_token';
+const AUTH_EXPIRY_KEY = 'token_expiry';
 
 // Utility function to extract unique locations from the events array
 export const extractLocations = (events) => {
@@ -223,7 +225,9 @@ export const getAuthURL = async () => {
 };
 
 // Function to check if the access token is valid
-const checkToken = async (accessToken) => {
+export const checkToken = async (accessToken) => {
+  if (!accessToken) return false;
+  
   console.log('Validating token...');
   try {
     const response = await fetch(
@@ -238,70 +242,76 @@ const checkToken = async (accessToken) => {
   }
 };
 
+// Function to check if user is authenticated
+export const isAuthenticated = async () => {
+  const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
+  const expiryStr = sessionStorage.getItem(AUTH_EXPIRY_KEY);
+  
+  if (!token) return false;
+  
+  // Check if token has expired based on stored expiry time
+  if (expiryStr) {
+    const expiry = parseInt(expiryStr, 10);
+    if (Date.now() > expiry) {
+      console.log('Token expired');
+      await logout();
+      return false;
+    }
+  }
+  
+  // Validate token with Google
+  const isValid = await checkToken(token);
+  if (!isValid) {
+    console.log('Invalid token detected');
+    await logout();
+    return false;
+  }
+  
+  return true;
+};
+
 // Function to get events from AWS Lambda
 export const getEvents = async () => {
   console.log('Getting events...');
-  if (authErrorCount >= MAX_AUTH_ERRORS) {
-    console.warn('Too many authentication failures, using mock data');
-    return mockData;
-  }
-
+  
+  // Handle OAuth redirect if code is present
   if (new URLSearchParams(window.location.search).has('code') && !isOAuthHandled) {
-    const handled = await handleOAuthRedirect();
-    if (!handled) {
-      return mockData;
-    }
+    await handleOAuthRedirect();
   }
 
-  const token = sessionStorage.getItem('access_token');
-  console.log('Access token from sessionStorage:', token);
-
-  if (!token && !isAuthenticating) {
-    console.log('No token available, starting auth flow...');
-    isAuthenticating = true;
-    try {
+  // Check authentication status
+  const authenticated = await isAuthenticated();
+  if (!authenticated) {
+    if (!isAuthenticating) {
+      console.log('Not authenticated, starting auth flow...');
       await startOAuthProcess();
-    } catch (error) {
-      console.error('Error during auth process:', error);
-      isAuthenticating = false;
-      authErrorCount++;
     }
-    return mockData;
+    throw new Error('Authentication required to fetch events');
   }
 
-  if (isAuthenticating) {
-    return mockData;
-  }
-
+  // Fetch events with valid token
+  const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
   try {
-    const isValid = await checkToken(token);
-    if (!isValid) {
-      console.log('Invalid token, restarting auth flow...');
-      sessionStorage.removeItem('access_token');
-      if (authErrorCount < MAX_AUTH_ERRORS) {
-        isAuthenticating = true;
-        await startOAuthProcess();
-      } else {
-        console.warn('Too many authentication failures, using mock data');
-      }
-      return mockData;
-    }
-
     const url = `${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`;
     console.log('Fetching events from:', url);
 
     const response = await fetch(url);
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        console.log('Authentication error during fetch, clearing credentials');
+        await logout();
+        await startOAuthProcess();
+        throw new Error('Authentication expired, please log in again');
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const { events } = await response.json();
     console.log('Successfully fetched events:', events.length);
-    authErrorCount = 0; // Reset error count on success
     return events;
   } catch (error) {
     console.error('Error fetching events:', error);
-    return mockData;
+    throw error;
   }
 };
 
@@ -323,17 +333,23 @@ export const getAccessToken = async (code) => {
       throw new Error(errorData.message || 'Failed to get access token');
     }
 
-    const { access_token } = await response.json();
+    const { access_token, expires_in } = await response.json();
     if (!access_token) {
       throw new Error('Access token missing from response');
     }
 
     console.log('Successfully received access token');
-    sessionStorage.setItem('access_token', access_token);
+    
+    // Calculate expiry time (default to 1 hour if not provided)
+    const expiryTime = Date.now() + ((expires_in || 3600) * 1000);
+    
+    // Store token and expiry
+    sessionStorage.setItem(AUTH_STORAGE_KEY, access_token);
+    sessionStorage.setItem(AUTH_EXPIRY_KEY, expiryTime.toString());
+    
     return access_token;
   } catch (error) {
     console.error('Error getting access token:', error);
-    authErrorCount++;
     throw error;
   }
 };
@@ -347,12 +363,17 @@ export const removeQueryParams = () => {
 
 // Function to initiate OAuth process
 export const startOAuthProcess = async () => {
+  if (isAuthenticating) return;
+  
+  isAuthenticating = true;
   console.log('Starting OAuth process...');
+  
   try {
     const authUrl = await getAuthURL();
     console.log('Redirecting to auth URL:', authUrl);
     window.location.href = authUrl;
   } catch (error) {
+    isAuthenticating = false;
     console.error('Failed to start OAuth process:', error);
     alert('Failed to start authentication. Please try again.');
     throw error;
@@ -362,9 +383,7 @@ export const startOAuthProcess = async () => {
 // Function to handle the OAuth process after redirect
 export const handleOAuthRedirect = async () => {
   console.log('Handling OAuth redirect...');
-  if (isOAuthHandled) {
-    return false;
-  }
+  if (isOAuthHandled) return false;
 
   const code = new URLSearchParams(window.location.search).get('code');
   if (code) {
@@ -380,24 +399,38 @@ export const handleOAuthRedirect = async () => {
       console.error('Error handling OAuth redirect:', error);
       isOAuthHandled = false;
       isAuthenticating = false;
-      return false;
+      throw error;
     }
   } else {
     return false;
   }
 };
 
+// Function to log out
+export const logout = async () => {
+  console.log('Logging out...');
+  sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  sessionStorage.removeItem(AUTH_EXPIRY_KEY);
+};
+
 // Initialize the application
-export const initializeApp = () => {
+export const initializeApp = async () => {
   console.log('Initializing app...');
+  
   if (new URLSearchParams(window.location.search).has('code') && !isOAuthHandled) {
-    handleOAuthRedirect()
-      .then(() => {
-        console.log('OAuth redirect handling complete');
-      })
-      .catch((error) => {
-        console.error('OAuth redirect handling failed:', error);
-      });
+    try {
+      await handleOAuthRedirect();
+      console.log('OAuth redirect handling complete');
+    } catch (error) {
+      console.error('OAuth redirect handling failed:', error);
+    }
+  } else {
+    // Check if we have a valid authentication
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      console.log('No valid authentication found during initialization');
+      // The actual auth flow will be triggered when API calls are made
+    }
   }
 };
 
