@@ -8,22 +8,23 @@ const AuthWrapper = ({ children }) => {
 
   useEffect(() => {
     const authenticate = async () => {
+      console.log("Authenticating...");
       try {
-        // Check if user is authenticated
         const loggedIn = await isAuthenticated();
         if (!loggedIn) {
-          await ensureAuthenticated(); // Initiate OAuth process if not authenticated
+          console.log("User not authenticated, starting OAuth flow");
+          await ensureAuthenticated();
         }
-        setAuthReady(true); // Set true once authentication is done
+        setAuthReady(true);
       } catch (err) {
         console.error('Auth error:', err);
         setAuthError(err.message || 'Authentication failed.');
       }
     };
-
+  
     authenticate();
   }, []);
-
+  
   if (authError) return <div className="auth-error">❌ {authError}</div>;
   if (!authReady) return <div className="auth-loader">🔐 Logging you in...</div>;
 

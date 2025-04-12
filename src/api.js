@@ -246,16 +246,6 @@ export const checkToken = async (accessToken) => {
 
 // Function to check if user is authenticated
 export const isAuthenticated = async () => {
-  // If authentication is in progress, wait for it to complete
-  if (authPromise) {
-    try {
-      await authPromise;
-    } catch (error) {
-      console.log('Authentication process failed:', error);
-      return false;
-    }
-  }
-
   const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
   const expiryStr = sessionStorage.getItem(AUTH_EXPIRY_KEY);
   
@@ -266,7 +256,7 @@ export const isAuthenticated = async () => {
     const expiry = parseInt(expiryStr, 10);
     if (Date.now() > expiry) {
       console.log('Token expired');
-      await logout();
+      await logout(); // Remove expired token
       return false;
     }
   }
@@ -275,11 +265,11 @@ export const isAuthenticated = async () => {
   const isValid = await checkToken(token);
   if (!isValid) {
     console.log('Invalid token detected');
-    await logout();
+    await logout(); // Clear invalid token
     return false;
   }
   
-  return true;
+  return true; // If the token is valid and not expired
 };
 
 // Function to ensure authentication before proceeding
@@ -527,6 +517,3 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeApp();
 });
 
-// Force immediate authentication check before anything else
-// This runs immediately during script load
-//forceImmediateAuthentication();
