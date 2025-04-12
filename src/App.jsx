@@ -1,10 +1,11 @@
 // src/App.js
+// src/App.jsx
 import React, { useEffect, useState } from 'react';
 import CitySearch from './components/CitySearch';
 import EventList from './components/EventList';
 import NumberOfEvents from './components/NumberOfEvents';
 import { extractLocations, getEvents } from './api';
-
+import AuthWrapper from './authwrapper'; // Import the AuthWrapper component
 import './App.css';
 
 const App = () => {
@@ -35,37 +36,39 @@ const App = () => {
     }
   };
 
-  // Fetch data when component mounts or when currentCity or currentNOE changes
   useEffect(() => {
     fetchData();
-  }, [currentCity, currentNOE]); // This will run whenever currentCity or currentNOE changes
+  }, [currentCity, currentNOE]);
 
   return (
-    <div className="App">
-      <h1>Meet App</h1>
-      
-      {error && <div className="error" data-testid="error">{error}</div>}
-      
-      {loading ? (
-        <div data-testid="loading">Loading events...</div>
-      ) : (
-        <>
-          <CitySearch 
-            allLocations={allLocations} 
-            setCurrentCity={setCurrentCity} 
-          />
-          
-          <NumberOfEvents 
-            currentNOE={currentNOE} 
-            setCurrentNOE={setCurrentNOE} 
-          />
-          
-          <EventList events={events} />
-        </>
-      )}
-    </div>
+    <AuthWrapper>
+      <div className="App">
+        <h1>Meet App</h1>
+        
+        {error && <div className="error" data-testid="error">{error}</div>}
+        
+        {loading ? (
+          <div data-testid="loading">Loading events...</div>
+        ) : (
+          <>
+            <CitySearch 
+              allLocations={allLocations} 
+              setCurrentCity={setCurrentCity} 
+            />
+            
+            <NumberOfEvents 
+              currentNOE={currentNOE} 
+              setCurrentNOE={setCurrentNOE} 
+            />
+            
+            <EventList events={events} />
+          </>
+        )}
+      </div>
+    </AuthWrapper>
   );
 };
 
 export default App;
+
 
