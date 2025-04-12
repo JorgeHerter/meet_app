@@ -403,12 +403,12 @@ export const startOAuthProcess = async () => {
   if (isAuthenticating) return;
   
   isAuthenticating = true;
-  authInitiated = true;
   console.log('Starting OAuth process...');
   
   try {
     const authUrl = await getAuthURL();
     console.log('Redirecting to auth URL:', authUrl);
+    authInitiated = true;
     window.location.href = authUrl;
     
     // Return a never-resolving promise since we're redirecting
