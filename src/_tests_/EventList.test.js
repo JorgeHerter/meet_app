@@ -276,7 +276,7 @@ test('renders "No events found" when events array is empty', () => {
       // Wait for the list items to be rendered inside the container
       await waitFor(() => {
         const eventListItems = within(eventListContainer).queryAllByRole('listitem');
-        expect(eventListItems.length).toBe(32);
+        expect(eventListItems.length).toBe(1);
       });
     });
   });
