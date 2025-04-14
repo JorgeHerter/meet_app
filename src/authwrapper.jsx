@@ -31,8 +31,10 @@ const AuthWrapper = ({ children }) => {
 
   const handleLogout = async () => {
     await logout();
-    window.location.reload();
+    sessionStorage.clear(); // Clear everything
+    window.location.href = '/'; // Redirect and force reauth
   };
+  
 
   useEffect(() => {
     const authenticate = async () => {
