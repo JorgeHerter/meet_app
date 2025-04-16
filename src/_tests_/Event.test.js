@@ -9,7 +9,13 @@ import { getEvents } from '../api';
 // Mock the API functions
 jest.mock('../api', () => ({
   getEvents: jest.fn(),
+  extractLocations: jest.fn((events) => {
+    return [...new Set(events.map((event) => event.location))];
+  }),
+  isAuthenticated: jest.fn().mockResolvedValue(true),
+  startOAuthProcess: jest.fn()
 }));
+
 
 describe('<Event /> component', () => {
   const mockEvent = {

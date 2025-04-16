@@ -9,10 +9,11 @@ import { extractLocations, getEvents } from '../api';
 // Mock the API functions
 jest.mock('../api', () => ({
   getEvents: jest.fn(),
-  extractLocations: jest.fn((events) => {
-    return [...new Set(events.map((event) => event.location))];
-  })
+  extractLocations: jest.fn((events = []) => [...new Set(events.map(e => e.location))]),
+  isAuthenticated: jest.fn().mockResolvedValue(true),
+  startOAuthProcess: jest.fn(),
 }));
+
 
 describe('<CitySearch /> component', () => {
   let CitySearchComponent;

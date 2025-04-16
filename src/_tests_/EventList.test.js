@@ -154,134 +154,145 @@ describe('<EventList /> component', () => {
     expect(eventItems).toHaveLength(mockEvents.length); // Should only show valid events
   });
 });*/
-import React, { useState, useEffect } from 'react';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import React from 'react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import EventList from '../components/EventList';
 import App from '../App';
-import EventList from '../components/EventList'; // Adjust path accordingly
-import { getEvents, extractLocations } from '../api'; // This is your real API call
+import { getEvents } from '../api';
 
-// Create a functional component that uses the hooks
+jest.mock('../api', () => ({
+  getEvents: jest.fn(),
+  extractLocations: jest.fn((events) => [...new Set(events.map(e => e.location))]),
+  isAuthenticated: jest.fn().mockResolvedValue(true),
+  startOAuthProcess: jest.fn(),
+}));
+
+// -------------------------
+// 🔹 Utility Component for State-based Test
+// -------------------------
 const EventListWithState = () => {
-  const [events, setEvents] = useState([]);
-  const [error, setError] = useState(null);
+  const [events, setEvents] = React.useState([]);
+  const [error, setError] = React.useState(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const eventData = await getEvents(); // Make real API call
-        setEvents(eventData); // Assuming eventData is an array of events
-      } catch (error) {
+        const data = await getEvents();
+        setEvents(data);
+      } catch (err) {
         setError('Error fetching events');
       }
     };
-
     fetchEvents();
-  }, []); // Empty array ensures this only runs once when the component mounts
+  }, []);
 
-  if (error) {
-    return <div>{error}</div>;
-  }
+  if (error) return <div>{error}</div>;
+  if (!events || events.length === 0) return <div>No events found</div>;
 
-  if (!events.length) {
-    return <div>Loading...</div>;
-  }
-
-  // Return the EventList component with events passed as props
   return <EventList events={events} />;
 };
 
+// -------------------------
+// 🔹 Unit Tests
+// -------------------------
 describe('<EventList /> component', () => {
-  test('renders list of events from real API', async () => {
-    render(<EventListWithState />); // Render the component with the useState/useEffect logic
+  test('renders list of valid events', () => {
+    const validEvents = [
+      { id: 1, summary: 'Event A', location: 'Berlin, Germany' },
+      { id: 2, summary: 'Event B', location: 'Paris, France' },
+    ];
 
-    // Wait for the event list to render
-    await waitFor(() => screen.getByTestId('event-list'));
+    render(<EventList events={validEvents} />);
 
     const eventList = screen.getByTestId('event-list');
     expect(eventList).toBeInTheDocument();
 
-    // You may want to adjust this part to the exact number of events you expect to be fetched
-    const eventItems = screen.getAllByRole('listitem');
-    expect(eventItems.length).toBeGreaterThan(0); // There should be at least one event
+    const items = screen.getAllByRole('listitem');
+    expect(items.length).toBe(validEvents.length);
+    expect(screen.getByText('Event A')).toBeInTheDocument();
+    expect(screen.getByText('Event B')).toBeInTheDocument();
   });
 
-  test('renders "No events found" when events array is empty from real API', async () => {
-    // Mock the API response to return an empty array
-    global.fetch = jest.fn().mockResolvedValueOnce({
-      json: jest.fn().mockResolvedValue([]) // Simulating empty events array from API
-    });
-  
-    render(<EventList />);
-  
-    // Wait for the component to render
-    const noEventsMessage = await screen.findByText(/No events found/i);
-    expect(noEventsMessage).toBeInTheDocument();
+  test('shows "No events found" for null', () => {
+    render(<EventList events={null} />);
+    expect(screen.getByText(/No events found/i)).toBeInTheDocument();
   });
-  
 
- test('renders "No events found" when events array is null', () => {
-  // Render the component with `events` set to null
-  render(<EventList events={null} />);
-  
-  // Check that the "No events found" message appears
-  expect(screen.getByText(/No events found/i)).toBeInTheDocument();
+  test('shows "No events found" for undefined', () => {
+    render(<EventList events={undefined} />);
+    expect(screen.getByText(/No events found/i)).toBeInTheDocument();
+  });
+
+  test('shows "No events found" for empty array', () => {
+    render(<EventList events={[]} />);
+    expect(screen.getByText(/No events found/i)).toBeInTheDocument();
+  });
+
+  test('filters out invalid events', () => {
+    const mixedEvents = [
+      { id: 1, summary: 'Valid Event', location: 'Berlin' },
+      { id: 2 }, // Invalid
+      {},        // Invalid
+    ];
+
+    render(<EventList events={mixedEvents} />);
+
+    const items = screen.getAllByRole('listitem');
+    expect(items.length).toBe(1); // Only one valid
+    expect(screen.getByText('Valid Event')).toBeInTheDocument();
+  });
 });
 
-test('renders "No events found" when events array is undefined', () => {
-  // Render the component with `events` set to undefined
-  render(<EventList events={undefined} />);
-  
-  // Check that the "No events found" message appears
-  expect(screen.getByText(/No events found/i)).toBeInTheDocument();
-});
+// -------------------------
+// 🔹 Integration with useEffect & API
+// -------------------------
+describe('<EventListWithState /> integration', () => {
+  test('loads and renders events from mocked API', async () => {
+    getEvents.mockResolvedValue([
+      { id: '1', summary: 'Fetched Event', location: 'London' },
+    ]);
 
-test('renders "No events found" when events array is empty', () => {
-  // Render the component with an empty array
-  render(<EventList events={[]} />);
-  
-  // Check that the "No events found" message appears
-  expect(screen.getByText(/No events found/i)).toBeInTheDocument();
-});
-
-  
-
-  test('filters out invalid events from real API', async () => {
     render(<EventListWithState />);
 
-    // Wait for the event list to render and handle the invalid events
-    await waitFor(() => screen.getByTestId('event-list'));
-
-    const eventItems = screen.getAllByRole('listitem');
-    expect(eventItems.length).toBeGreaterThan(0); // There should be at least one valid event
-
-    // Assuming the real API filters invalid events before returning them
-    // If not, you'll need to handle invalid events within the component's logic.
+    const list = await screen.findByTestId('event-list');
+    expect(list).toBeInTheDocument();
+    expect(within(list).getByText('Fetched Event')).toBeInTheDocument();
   });
 
-  /*test('renders "No events found" when events array is null', () => {
-    render(<EventList events={null} />); // Passing null explicitly
-  
-    const noEventsMessage = screen.getByText('No events found');
-    expect(noEventsMessage).toBeInTheDocument();
-  });*/
-
-  describe('<EventList /> integration', () => {
-    test('renders a list of 32 events when the app is mounted and rendered', async () => {
-      const AppComponent = render(<App />);
-      
-      // Wait for the event list to be rendered
-      const eventListContainer = await screen.findByTestId('event-list'); // Using testId to find the container
-  
-      // Wait for the list items to be rendered inside the container
-      await waitFor(() => {
-        const eventListItems = within(eventListContainer).queryAllByRole('listitem');
-        expect(eventListItems.length).toBe(1);
-      });
-    });
+  test('shows error if fetching fails', async () => {
+    getEvents.mockRejectedValueOnce(new Error('API error'));
+    render(<EventListWithState />);
+    expect(await screen.findByText(/error fetching events/i)).toBeInTheDocument();
   });
-  
+
+  test('shows "No events found" if API returns empty array', async () => {
+    getEvents.mockResolvedValue([]);
+    render(<EventListWithState />);
+    expect(await screen.findByText(/no events found/i)).toBeInTheDocument();
+  });
 });
+
+// -------------------------
+// 🔹 Full App Integration
+// -------------------------
+describe('<App /> integration', () => {
+  test('renders event list in the full App', async () => {
+    const mockEvents = [
+      { id: '1', summary: 'App Event', location: 'Amsterdam' }
+    ];
+
+    getEvents.mockResolvedValue(mockEvents);
+
+    render(<App />);
+
+    const eventList = await screen.findByTestId('event-list');
+    const listItems = within(eventList).getAllByRole('listitem');
+    expect(listItems.length).toBe(1);
+    expect(within(listItems[0]).getByText('App Event')).toBeInTheDocument();
+  });
+});
+
 /*test('dummy test', () => {
   expect(true).toBe(true);
 });*/

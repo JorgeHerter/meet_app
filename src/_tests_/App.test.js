@@ -10,8 +10,11 @@ jest.mock('../api', () => ({
   getEvents: jest.fn(),
   extractLocations: jest.fn((events) => {
     return [...new Set(events.map((event) => event.location))];
-  })
+  }),
+  isAuthenticated: jest.fn().mockResolvedValue(true), // ← Mock it to return "authenticated"
+  startOAuthProcess: jest.fn(),                       // ← Also needed for your app logic
 }));
+
 
 describe('<App /> component', () => {
   beforeEach(() => {
