@@ -33,14 +33,6 @@ export default EventList;*/
 import React from 'react';
 import Event from './Event';
 
-jest.mock('../api', () => ({
-  getEvents: jest.fn(),
-  extractLocations: jest.fn((events) => [...new Set(events.map(e => e.location))]),
-  isAuthenticated: jest.fn().mockResolvedValue(true),
-  startOAuthProcess: jest.fn()
-}));
-
-
 const EventList = ({ events = [] }) => { 
   // Default to an empty array if events is null or undefined
 
