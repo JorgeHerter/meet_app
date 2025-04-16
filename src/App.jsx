@@ -5,7 +5,7 @@ import CitySearch from './components/CitySearch';
 import EventList from './components/EventList';
 import NumberOfEvents from './components/NumberOfEvents';
 import { extractLocations, getEvents, isAuthenticated } from './api';
-import AuthWrapper from './authwrapper';
+import AuthWrapper from './authwrapper'; // Contains logout button
 import './App.css';
 
 const App = () => {
@@ -17,42 +17,31 @@ const App = () => {
   const [error, setError] = useState(null);
   const [authenticated, setAuthenticated] = useState(false);
 
-  // First check: is the user authenticated?
   useEffect(() => {
-    const verifyAuth = async () => {
+    const checkAuthAndFetch = async () => {
       setLoading(true);
       const auth = await isAuthenticated();
       setAuthenticated(auth);
+
+      if (auth) {
+        try {
+          const allEvents = await getEvents();
+          const filteredEvents = currentCity === "See all cities"
+            ? allEvents
+            : allEvents.filter(event => event.location === currentCity);
+
+          setEvents(filteredEvents.slice(0, currentNOE));
+          setAllLocations(extractLocations(allEvents));
+        } catch (err) {
+          console.error("Error fetching events:", err);
+          setError("Failed to load events. Please try again later.");
+        }
+      }
       setLoading(false);
     };
 
-    verifyAuth();
-  }, []); // Run only once when app mounts
-
-  // Once authenticated OR when user changes filter, fetch events
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!authenticated) return;
-
-      setLoading(true);
-      try {
-        const allEvents = await getEvents();
-        const filteredEvents = currentCity === "See all cities"
-          ? allEvents
-          : allEvents.filter(event => event.location === currentCity);
-
-        setEvents(filteredEvents.slice(0, currentNOE));
-        setAllLocations(extractLocations(allEvents));
-      } catch (err) {
-        console.error("Error fetching events:", err);
-        setError("Failed to load events. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [authenticated, currentCity, currentNOE]);
+    checkAuthAndFetch();
+  }, [currentCity, currentNOE]);
 
   return (
     <AuthWrapper>
@@ -84,7 +73,6 @@ const App = () => {
 };
 
 export default App;
-
 
 
 
