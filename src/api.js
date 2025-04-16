@@ -188,74 +188,234 @@ if (code) {
   startOAuthProcess();
 }*/
 
+// src/api.js
+import mockData from './mock-data';
+
 const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev';
+
+let isAuthenticating = false;
+let isOAuthHandled = false;
+let authPromise = null;
+let authInitiated = false;
 
 const AUTH_STORAGE_KEY = 'access_token';
 
-let authPromise = null;
+// Utility: extract unique event locations
+export const extractLocations = (events) => {
+  const locations = events.map(event => event.location);
+  return [...new Set(locations)];
+};
 
+// Get Google OAuth URL
 export const getAuthURL = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/get-auth-url`);
-  const { authUrl } = await response.json();
-  return authUrl;
-};
-
-export const getAccessToken = async (code) => {
-  const response = await fetch(`${API_BASE_URL}/api/token/${encodeURIComponent(code)}`);
-  const { access_token } = await response.json();
-
-  if (!access_token) {
-    throw new Error('No access token returned from API');
+  console.log('Requesting auth URL...');
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/get-auth-url`);
+    if (!response.ok) throw new Error(`Auth URL request failed: ${response.status}`);
+    const { authUrl } = await response.json();
+    return authUrl;
+  } catch (error) {
+    console.error('Failed to get auth URL:', error);
+    throw error;
   }
-
-  sessionStorage.setItem(AUTH_STORAGE_KEY, access_token);
-  return access_token;
 };
 
-export const checkToken = async (token) => {
-  const response = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${token}`);
-  const result = await response.json();
-  return !result.error;
+// Validate token with Google
+export const checkToken = async (accessToken) => {
+  if (!accessToken) return false;
+  try {
+    const response = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`);
+    const result = await response.json();
+    return !result.error;
+  } catch (error) {
+    console.error('Error validating token:', error);
+    return false;
+  }
 };
 
+// Check authentication status
 export const isAuthenticated = async () => {
   const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
   if (!token) return false;
 
-  return await checkToken(token);
+  const isValid = await checkToken(token);
+  if (!isValid) {
+    console.log('Token invalid');
+    await logout();
+    return false;
+  }
+
+  return true;
 };
 
-export const logout = () => {
-  sessionStorage.removeItem(AUTH_STORAGE_KEY);
-};
-
-export const handleOAuthRedirect = async () => {
-  const code = new URLSearchParams(window.location.search).get('code');
-  if (!code) return;
-
-  authPromise = getAccessToken(code).then(() => {
-    window.history.replaceState({}, '', window.location.pathname);
-  });
-  return authPromise;
-};
-
+// Ensure user is authenticated
 export const ensureAuthenticated = async () => {
-  if (authPromise) await authPromise;
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('code') && !isOAuthHandled) {
+    await handleOAuthRedirect();
+  }
+
+  if (authPromise) {
+    try {
+      await authPromise;
+    } catch (error) {
+      throw new Error('Authentication failed');
+    }
+  }
 
   const authenticated = await isAuthenticated();
   if (!authenticated) {
-    const authUrl = await getAuthURL();
-    window.location.href = authUrl;
+    await startOAuthProcess();
+    throw new Error('Authentication required');
+  }
+
+  return true;
+};
+
+// Fetch events
+export const getEvents = async () => {
+  try {
+    await ensureAuthenticated();
+  } catch (err) {
+    throw err;
+  }
+
+  const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
+  const url = `${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      if ([401, 403].includes(response.status)) {
+        await logout();
+        await startOAuthProcess();
+        throw new Error('Authentication expired');
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const { events } = await response.json();
+    return events;
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    throw error;
   }
 };
 
-export const getEvents = async () => {
-  await ensureAuthenticated();
+// Fetch access token using code
+export const getAccessToken = async (code) => {
+  const url = `${API_BASE_URL}/api/token/${encodeURIComponent(code)}`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to get access token');
+    }
 
-  const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
-  const response = await fetch(`${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`);
-  const { events } = await response.json();
-  return events;
+    const { access_token } = await response.json();
+    if (!access_token) throw new Error('Access token missing');
+
+    sessionStorage.setItem(AUTH_STORAGE_KEY, access_token);
+    return access_token;
+  } catch (error) {
+    console.error('Error getting access token:', error);
+    throw error;
+  }
 };
+
+// Clean query string from URL
+export const removeQueryParams = () => {
+  const newUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+  window.history.pushState({}, document.title, newUrl);
+};
+
+// Start OAuth flow
+export const startOAuthProcess = async () => {
+  if (isAuthenticating) return;
+
+  isAuthenticating = true;
+  try {
+    const authUrl = await getAuthURL();
+    authInitiated = true;
+    window.location.href = authUrl;
+    return new Promise(() => {}); // keep pending
+  } catch (error) {
+    isAuthenticating = false;
+    alert('Authentication failed.');
+    throw error;
+  }
+};
+
+// Handle redirect from OAuth flow
+export const handleOAuthRedirect = async () => {
+  if (isOAuthHandled) return authPromise;
+
+  const code = new URLSearchParams(window.location.search).get('code');
+  if (!code) return Promise.resolve(false);
+
+  if (!authPromise) {
+    isOAuthHandled = true;
+    isAuthenticating = true;
+
+    authPromise = (async () => {
+      try {
+        await getAccessToken(code);
+        removeQueryParams();
+        return true;
+      } finally {
+        isAuthenticating = false;
+      }
+    })();
+  }
+
+  try {
+    return await authPromise;
+  } catch (error) {
+    authPromise = null;
+    isOAuthHandled = false;
+    throw error;
+  }
+};
+
+// Manual logout
+export const logout = async () => {
+  console.log('Logging out...');
+  sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  authPromise = null;
+  isOAuthHandled = false;
+  isAuthenticating = false;
+  authInitiated = false;
+};
+
+// Initialization
+export const initializeApp = async () => {
+  if (new URLSearchParams(window.location.search).has('code')) {
+    await handleOAuthRedirect().catch((err) =>
+      console.error('OAuth redirect error:', err)
+    );
+    return;
+  }
+  forceImmediateAuthentication();
+};
+
+// Kick off auth if not already
+export const forceImmediateAuthentication = async () => {
+  if (authInitiated) return;
+
+  try {
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      await startOAuthProcess();
+    }
+  } catch (err) {
+    console.error('Auth check failed:', err);
+  }
+};
+
+// Run on DOM load
+document.addEventListener('DOMContentLoaded', () => {
+  initializeApp();
+});
+
 
 
