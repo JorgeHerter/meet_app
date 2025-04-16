@@ -229,7 +229,7 @@ export const getAuthURL = async () => {
 // Function to check if the access token is valid
 export const checkToken = async (accessToken) => {
   if (!accessToken) return false;
-
+  
   console.log('Validating token...');
   try {
     const response = await fetch(
@@ -248,9 +248,9 @@ export const checkToken = async (accessToken) => {
 export const isAuthenticated = async () => {
   const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
   const expiryStr = sessionStorage.getItem(AUTH_EXPIRY_KEY);
-
+  
   if (!token) return false;
-
+  
   // Check if token has expired based on stored expiry time
   if (expiryStr) {
     const expiry = parseInt(expiryStr, 10);
@@ -260,7 +260,7 @@ export const isAuthenticated = async () => {
       return false;
     }
   }
-
+  
   // Validate token with Google
   const isValid = await checkToken(token);
   if (!isValid) {
@@ -268,7 +268,7 @@ export const isAuthenticated = async () => {
     await logout(); // Clear invalid token
     return false;
   }
-
+  
   return true; // If the token is valid and not expired
 };
 
@@ -307,7 +307,7 @@ export const ensureAuthenticated = async () => {
 // Function to get events from AWS Lambda
 export const getEvents = async () => {
   console.log('Getting events...');
-
+  
   // Ensure authentication before proceeding
   try {
     await ensureAuthenticated();
@@ -366,14 +366,14 @@ export const getAccessToken = async (code) => {
     }
 
     console.log('Successfully received access token');
-
+    
     // Calculate expiry time (default to 1 hour if not provided)
     const expiryTime = Date.now() + ((expires_in || 3600) * 1000);
-
+    
     // Store token and expiry
     sessionStorage.setItem(AUTH_STORAGE_KEY, access_token);
     sessionStorage.setItem(AUTH_EXPIRY_KEY, expiryTime.toString());
-
+    
     return access_token;
   } catch (error) {
     console.error('Error getting access token:', error);
@@ -391,16 +391,16 @@ export const removeQueryParams = () => {
 // Function to initiate OAuth process
 export const startOAuthProcess = async () => {
   if (isAuthenticating) return;
-
+  
   isAuthenticating = true;
   console.log('Starting OAuth process...');
-
+  
   try {
     const authUrl = await getAuthURL();
     console.log('Redirecting to auth URL:', authUrl);
     authInitiated = true;
     window.location.href = authUrl;
-
+    
     // Return a never-resolving promise since we're redirecting
     return new Promise(() => {});
   } catch (error) {
@@ -429,7 +429,7 @@ export const handleOAuthRedirect = async () => {
   if (!authPromise) {
     isOAuthHandled = true;
     isAuthenticating = true;
-
+    
     // Create a new promise for the auth process
     authPromise = (async () => {
       try {
@@ -471,7 +471,7 @@ export const logout = async () => {
 // Initialize the application - on load, check auth state
 export const initializeApp = async () => {
   console.log('Initializing app...');
-
+  
   // Handle OAuth redirect if there's a code in the URL
   if (new URLSearchParams(window.location.search).has('code')) {
     console.log('Code detected in URL, handling OAuth redirect');
@@ -484,7 +484,7 @@ export const initializeApp = async () => {
       });
     return;
   }
-
+  
   // Force immediate authentication check if not handling a redirect
   forceImmediateAuthentication();
 };
@@ -496,7 +496,7 @@ export const forceImmediateAuthentication = async () => {
     console.log('Authentication already initiated, skipping additional check');
     return;
   }
-
+  
   console.log('Checking authentication as first step...');
   try {
     const authenticated = await isAuthenticated();
@@ -517,4 +517,3 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeApp();
 });
 
-export { handleAuthRedirect }; // <-- Added export for handleAuthRedirect function
