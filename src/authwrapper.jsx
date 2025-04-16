@@ -1,35 +1,38 @@
 // src/AuthWrapper.jsx
 import React, { useEffect, useState } from 'react';
-import { isAuthenticated, ensureAuthenticated } from './api';
+import { ensureAuthenticated, logout, handleOAuthRedirect } from './api';
 
 const AuthWrapper = ({ children }) => {
-  const [authReady, setAuthReady] = useState(false);
-  const [authError, setAuthError] = useState(null);
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
-    const authenticate = async () => {
-      console.log("Authenticating...");
-      try {
-        const loggedIn = await isAuthenticated();
-        if (!loggedIn) {
-          console.log("User not authenticated, starting OAuth flow");
-          await ensureAuthenticated();
-        }
-        setAuthReady(true);
-      } catch (err) {
-        console.error('Auth error:', err);
-        setAuthError(err.message || 'Authentication failed.');
+    const init = async () => {
+      if (new URLSearchParams(window.location.search).has('code')) {
+        await handleOAuthRedirect();
       }
-    };
-  
-    authenticate();
-  }, []);
-  
-  if (authError) return <div className="auth-error">❌ {authError}</div>;
-  if (!authReady) return <div className="auth-loader">🔐 Logging you in...</div>;
 
-  // If authenticated and ready, render children (main app content)
-  return <>{children}</>;
+      await ensureAuthenticated();
+      setAuthenticated(true);
+    };
+
+    init();
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    window.location.reload(); // Force re-auth
+  };
+
+  if (!authenticated) return <p>Authenticating...</p>;
+
+  return (
+    <div>
+      <div style={{ position: 'absolute', top: 10, right: 10 }}>
+        <button onClick={handleLogout}>Logout</button>
+      </div>
+      {children}
+    </div>
+  );
 };
 
 export default AuthWrapper;
