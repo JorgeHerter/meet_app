@@ -1,6 +1,20 @@
 // src/setupTests.js
 
 import '@testing-library/jest-dom';
+import 'whatwg-fetch';
+
+beforeEach(() => {
+  jest.mock('./api', () => ({
+    isAuthenticated: jest.fn().mockResolvedValue(true),
+    getEvents: jest.fn().mockResolvedValue([
+      { id: 1, location: 'Berlin', title: 'React Meetup' },
+      { id: 2, location: 'London', title: 'JSConf' }
+    ]),
+    startOAuthProcess: jest.fn()
+  }));
+});
+
+
 
 
 // Here, add portions of the warning messages you want to intentionally prevent from appearing

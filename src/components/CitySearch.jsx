@@ -107,12 +107,12 @@ const CitySearch = ({ allLocations, setCurrentCity }) => {
     setSuggestions(filteredLocations); // Update suggestions based on user input
   };
 
-  const handleItemClicked = (event) => {
-    const value = event.target.textContent;
+  const handleItemClicked = (value) => {
     setQuery(value);
     setShowSuggestions(false);
-    setCurrentCity(value); // Set the current city in the parent component (App)
+    setCurrentCity(value);
   };
+  
 
   return (
     <div id="city-search" className='city-search' data-testid="city-search">

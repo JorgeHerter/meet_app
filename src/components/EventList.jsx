@@ -33,28 +33,25 @@ export default EventList;*/
 import React from 'react';
 import Event from './Event';
 
-const EventList = ({ events = [] }) => { 
-  // Default to an empty array if events is null or undefined
-
-  // Filter out any invalid or empty events based on the assumption that 
-  // a valid event should have a location property
-  const validEvents = Array.isArray(events) 
+const EventList = ({ events = [] }) => {
+  const validEvents = Array.isArray(events)
     ? events.filter(event => event && event.location)
     : [];
 
   return (
-    <ul id="event-list" data-testid="event-list">
-      {validEvents.length > 0 ? (
-        validEvents.map(event => (
-          <li key={event.id} role="listitem">
-            <Event event={event} />
-          </li>
-        ))
+    <>
+      {validEvents.length === 0 ? (
+        <p data-testid="no-events-msg">No events found</p>
       ) : (
-        // If there are no valid events, show "No events found"
-        <li>No events found</li>
+        <ul id="event-list" data-testid="event-list">
+          {validEvents.map(event => (
+            <li key={event.id} role="listitem">
+              <Event event={event} />
+            </li>
+          ))}
+        </ul>
       )}
-    </ul>
+    </>
   );
 };
 

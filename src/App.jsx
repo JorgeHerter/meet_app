@@ -33,11 +33,12 @@ const App = () => {
     try {
       setLoading(true);
       const allEvents = await getEvents();
-      const filteredEvents = currentCity === "See all cities"
-        ? allEvents
-        : allEvents.filter((event) => event.location === currentCity);
+      const filteredEvents =
+        currentCity === "See all cities"
+          ? allEvents
+          : allEvents.filter((event) => event.location === currentCity);
 
-      setEvents(filteredEvents.slice(0, currentNOE));
+      setEvents(filteredEvents.slice(0, currentNOE)); // Limit events based on currentNOE
       setAllLocations(extractLocations(allEvents));
     } catch (err) {
       console.error("Error fetching events:", err);
@@ -47,17 +48,21 @@ const App = () => {
     }
   };
 
-  // Effect to handle authentication and fetch events
+  // Effect to handle authentication on first render
   useEffect(() => {
     const initializeApp = async () => {
       await handleAuthentication();
-      if (authenticated) {
-        fetchData();
-      }
     };
 
     initializeApp();
-  }, [authenticated, currentCity, currentNOE]);
+  }, []);  // Only run once when the component mounts
+
+  // Effect to fetch events once authenticated
+  useEffect(() => {
+    if (authenticated) {
+      fetchData();
+    }
+  }, [authenticated, currentCity, currentNOE]); // Runs when authenticated, currentCity, or currentNOE changes
 
   return (
     <div className="App">
@@ -79,5 +84,6 @@ const App = () => {
 };
 
 export default App;
+
 
 

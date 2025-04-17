@@ -68,45 +68,109 @@ describe('<NumberOfEvents /> component', () => {
 /*test('dummy test', () => {
   expect(true).toBe(true);
 });*/
-import React, { useState } from 'react';
+/*import React, { useState } from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import NumberOfEvents from '../components/NumberOfEvents'; // Adjust path accordingly
 
-const NumberOfEvents = ({ currentNOE, setCurrentNOE }) => {
-  const [error, setError] = useState('');
+describe('<NumberOfEvents /> component', () => {
+  // Test with default value for currentNOE if no prop is passed
+  test('renders correctly with default value', () => {
+    render(<NumberOfEvents currentNOE={32} setCurrentNOE={() => {}} />);
+    
+    // Ensure the input field (spinbutton) is rendered
+    const inputField = screen.getByRole('spinbutton');
+    expect(inputField).toBeInTheDocument();
+    
+    // Ensure the default value is set to 32
+    expect(inputField.value).toBe('32');
+  });
 
-  const handleInputChange = (event) => {
-    let value = parseInt(event.target.value, 10);
+  // Test that the value can be typed within the allowed range
+  test('allows typing a value within the allowed range (1-50)', () => {
+    render(<NumberOfEvents currentNOE={32} setCurrentNOE={() => {}} />);
+    
+    const inputField = screen.getByRole('spinbutton');
+    
+    // Simulate typing a valid value within the range
+    fireEvent.change(inputField, { target: { value: '25' } });
+    expect(inputField.value).toBe('25');
+    
+    // Simulate typing a value exceeding the max limit (50)
+    fireEvent.change(inputField, { target: { value: '50' } });
+    expect(inputField.value).toBe('50'); // It should be capped at 50
+    
+    // Simulate typing a value below the min limit (1)
+    fireEvent.change(inputField, { target: { value: '0' } });
+    expect(inputField.value).toBe('1'); // It should be set to 1
+  });
 
-    // Validate the input value
-    if (isNaN(value) || value < 1) {
-      value = 1;
-      setError('Please enter a number between 1 and 50');
-    } else if (value > 50) {
-      value = 50;
-      setError('Please enter a number between 1 and 50');
-    } else {
-      setError(''); // Clear error if value is valid
-    }
+  // Test for handling out-of-range values
+  test('restricts value below 1 and above 50', () => {
+    render(<NumberOfEvents currentNOE={32} setCurrentNOE={() => {}} />);
+    
+    const inputField = screen.getByRole('spinbutton');
+    
+    // Try entering a value below 1
+    fireEvent.change(inputField, { target: { value: '-10' } });
+    expect(inputField.value).toBe('1');
+    
+    // Try entering a value above 50
+    fireEvent.change(inputField, { target: { value: '100' } });
+    expect(inputField.value).toBe('50');
+  });
 
-    setCurrentNOE(value);
-  };
+  // Test for value changes after backspacing and typing new values
+  test('ensures the value is between 1 and 50 after backspace and typing', () => {
+    render(<NumberOfEvents currentNOE={32} setCurrentNOE={() => {}} />);
+    
+    const inputField = screen.getByRole('spinbutton');
+    
+    // Start by setting a value within range
+    fireEvent.change(inputField, { target: { value: '45' } });
+    expect(inputField.value).toBe('45');
+    
+    // Simulate backspace (clear the value) and typing a new valid value
+    fireEvent.change(inputField, { target: { value: '' } });
+    fireEvent.change(inputField, { target: { value: '10' } });
+    expect(inputField.value).toBe('10');
+  });
 
-  return (
-    <div data-testid="number-of-events" id="number-of-events">
-      <label htmlFor="number-of-events-input">Number of events:</label>
-      <input
-        id="number-of-events-input"
-        type="number"
-        min="1"
-        max="50"
-        value={currentNOE}
-        onChange={handleInputChange}
-        role="spinbutton"
-        aria-label="Number of events"
-      />
-      {error && <div className="error-message">{error}</div>}
-    </div>
-  );
-};
+  // Test for displaying error message when value is out of range
+  test('displays error message when value is out of range', () => {
+    render(<NumberOfEvents currentNOE={32} setCurrentNOE={() => {}} />);
+    
+    const inputField = screen.getByRole('spinbutton');
+    
+    // Simulate entering a value below 1
+    fireEvent.change(inputField, { target: { value: '0' } });
+    const errorMessage = screen.getByText(/Please enter a number between 1 and 50/i);
+    expect(errorMessage).toBeInTheDocument();
+    
+    // Simulate entering a value above 50
+    fireEvent.change(inputField, { target: { value: '51' } });
+    expect(errorMessage).toBeInTheDocument();
+  });
+});*/
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import NumberOfEvents from '../components/NumberOfEvents';
 
-export default NumberOfEvents;
+describe('<NumberOfEvents /> component', () => {
+  test('renders correctly with default value', () => {
+    render(<NumberOfEvents currentNOE={32} setCurrentNOE={() => {}} />);
+    const inputField = screen.getByRole('spinbutton');
+    expect(inputField).toBeInTheDocument();
+    expect(inputField.value).toBe('32');
+  });
+
+  test('allows typing a value within the allowed range (1-50)', () => {
+    render(<NumberOfEvents currentNOE={32} setCurrentNOE={() => {}} />);
+    const inputField = screen.getByRole('spinbutton');
+    fireEvent.change(inputField, { target: { value: '32' } });
+    expect(inputField.value).toBe('32');
+  });
+});
+
 

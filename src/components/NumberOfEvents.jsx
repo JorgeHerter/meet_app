@@ -1,51 +1,41 @@
 import React, { useState } from 'react';
 
 const NumberOfEvents = ({ currentNOE, setCurrentNOE }) => {
-  const maxEvents = 50; // Set a maximum limit
-  const minEvents = 1; // Set a minimum limit
-  const [isOutOfRange, setIsOutOfRange] = useState(false);
+  const [error, setError] = useState('');
 
-  // Handle changes to the input field
   const handleInputChange = (event) => {
-    const value = parseInt(event.target.value);
+    let value = parseInt(event.target.value, 10);
 
-    // Check if value is a number
-    if (isNaN(value)) {
-      return;
-    }
-
-    // Ensure the value is within the allowed range
-    const boundedValue = Math.max(minEvents, Math.min(maxEvents, value));
-
-    // Set feedback for out of range values
-    if (value < minEvents || value > maxEvents) {
-      setIsOutOfRange(true);
+    // Validate the input value
+    if (isNaN(value) || value < 1) {
+      value = 1;
+      setError('Please enter a number between 1 and 50');
+    } else if (value > 50) {
+      value = 50;
+      setError('Please enter a number between 1 and 50');
     } else {
-      setIsOutOfRange(false);
+      setError(''); // Clear error if value is valid
     }
 
-    setCurrentNOE(boundedValue);
+    setCurrentNOE(value); // Update the parent state
   };
 
   return (
-    <div id="number-of-events" data-testid="number-of-events">
+    <div data-testid="number-of-events" id="number-of-events">
       <label htmlFor="number-of-events-input">
-        Number of events (between {minEvents} and {maxEvents}):
+        Number of events (between 1 and 50):
       </label>
       <input
         id="number-of-events-input"
         type="number"
+        min="1"
+        max="50"
         value={currentNOE}
         onChange={handleInputChange}
-        min={minEvents}
-        max={maxEvents}
+        role="spinbutton"
         aria-label="Number of events"
       />
-      {isOutOfRange && (
-        <p style={{ color: 'red' }}>
-          Please enter a number between {minEvents} and {maxEvents}.
-        </p>
-      )}
+      {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
 };

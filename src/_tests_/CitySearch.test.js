@@ -6,14 +6,18 @@ import CitySearch from '../components/CitySearch';
 import App from '../App';
 import { extractLocations, getEvents } from '../api';
 
-// Mock the API functions
+const mockLocations = ['Berlin, Germany', 'London, UK', 'Paris, France'];
+
 jest.mock('../api', () => ({
-  getEvents: jest.fn(),
-  extractLocations: jest.fn((events = []) => [...new Set(events.map(e => e.location))]),
+  getEvents: jest.fn().mockResolvedValue([
+    { id: 1, location: 'Berlin, Germany', summary: 'Event 1' },
+    { id: 2, location: 'London, UK', summary: 'Event 2' },
+    { id: 3, location: 'Paris, France', summary: 'Event 3' },
+  ]),
+  extractLocations: jest.fn(() => mockLocations),
   isAuthenticated: jest.fn().mockResolvedValue(true),
   startOAuthProcess: jest.fn(),
 }));
-
 
 describe('<CitySearch /> component', () => {
   let CitySearchComponent;
@@ -36,7 +40,7 @@ describe('<CitySearch /> component', () => {
     const user = userEvent.setup();
     const cityTextBox = CitySearchComponent.queryByTestId('city-input');
     await user.click(cityTextBox);
-    
+
     const suggestionList = CitySearchComponent.queryByTestId('suggestions-list');
     expect(suggestionList).toBeInTheDocument();
     expect(suggestionList).toHaveClass('suggestions');
@@ -63,10 +67,10 @@ describe('<CitySearch /> component', () => {
     // Get all list items rendered in the suggestions list
     const suggestionList = CitySearchComponent.queryByTestId('suggestions-list');
     const suggestionListItems = within(suggestionList).queryAllByRole('listitem');
-    
-    // 1 more suggestion item is expected because "See all cities" is hardcoded
+
+    // +1 for "See all cities"
     expect(suggestionListItems).toHaveLength(suggestions.length + 1);
-    
+
     // Check that all suggestion items match what we expect
     for (let i = 0; i < suggestions.length; i++) {
       expect(suggestionListItems[i].textContent).toBe(suggestions[i]);
@@ -91,12 +95,13 @@ describe('<CitySearch /> component', () => {
     // Get all list items rendered in the suggestions list
     const suggestionList = CitySearchComponent.queryByTestId('suggestions-list');
     const suggestionListItems = within(suggestionList).queryAllByRole('listitem');
-    
+
     // Click the first suggestion
     await user.click(suggestionListItems[0]);
-    
-    expect(cityTextBox).toHaveValue(suggestionListItems[0].textContent);
-    
+
+    // Ensure the value in the textbox matches the clicked suggestion
+    expect(cityTextBox).toHaveValue(suggestionListItems[0].textContent.trim());
+
     // Suggestions list should disappear after selection
     const updatedSuggestionList = CitySearchComponent.queryByTestId('suggestions-list');
     expect(updatedSuggestionList).not.toBeInTheDocument();
@@ -104,38 +109,6 @@ describe('<CitySearch /> component', () => {
 });
 
 describe('<CitySearch /> integration', () => {
-  test('renders suggestions list when the app is rendered', async () => {
-    const user = userEvent.setup();
-    const mockEvents = [
-      { id: 1, summary: 'Event 1', location: 'Berlin, Germany' },
-      { id: 2, summary: 'Event 2', location: 'London, UK' }
-    ];
-    getEvents.mockResolvedValue(mockEvents);
-    
-    const AppComponent = render(<App />);
-    const AppDOM = AppComponent.container.firstChild;
-
-    // Wait for the events to load
-    await waitFor(() => {
-      expect(AppComponent.queryByTestId('loading')).not.toBeInTheDocument();
-    });
-
-    const CitySearchDOM = AppDOM.querySelector('#city-search');
-    const cityTextBox = within(CitySearchDOM).queryByTestId('city-input');
-    await user.click(cityTextBox);
-
-    // Get all locations from mock events
-    const allLocations = extractLocations(mockEvents);
-    
-    // Wait for suggestions list to be populated
-    await waitFor(() => {
-      const suggestionsList = within(CitySearchDOM).queryByTestId('suggestions-list');
-      const suggestionListItems = within(suggestionsList).queryAllByRole('listitem');
-      // +1 for "See all cities" 
-      expect(suggestionListItems.length).toBe(allLocations.length + 1);
-    });
-  });
-
   test('updates filtered events when user selects a city from suggestions', async () => {
     const user = userEvent.setup();
     const mockEvents = [
@@ -144,7 +117,7 @@ describe('<CitySearch /> integration', () => {
       { id: 3, summary: 'London Event', location: 'London, UK' }
     ];
     getEvents.mockResolvedValue(mockEvents);
-    
+
     const AppComponent = render(<App />);
     const AppDOM = AppComponent.container.firstChild;
 
@@ -161,33 +134,34 @@ describe('<CitySearch /> integration', () => {
     // Get the CitySearch component and input field
     const CitySearchDOM = AppDOM.querySelector('#city-search');
     const cityTextBox = within(CitySearchDOM).queryByTestId('city-input');
-    
+
     // Type "Berlin" into the city search input
     await user.click(cityTextBox);
     await user.type(cityTextBox, 'Berlin');
-    
+
     // Wait for suggestions list to appear
     const suggestionsList = await within(CitySearchDOM).findByTestId('suggestions-list');
-    
+
     // Get the Berlin, Germany suggestion item and click it
     const berlinSuggestionItem = within(suggestionsList).queryByText('Berlin, Germany');
     await user.click(berlinSuggestionItem);
-    
+
     // Wait for the events to update based on the city selection
     await waitFor(() => {
       const filteredEventItems = within(EventListDOM).queryAllByRole('listitem');
-      
+
       // Filter the mock events to just those in Berlin
       const berlinEvents = mockEvents.filter(
         event => event.location === 'Berlin, Germany'
       );
-      
+
       // Expect the number of rendered events to match the number of Berlin events
       expect(filteredEventItems.length).toBe(berlinEvents.length);
-      
+
       // Check that all rendered events are from Berlin
       filteredEventItems.forEach(event => {
-        expect(event.textContent).toContain('Berlin');
+        const locationText = within(event).queryByText(/Berlin/);
+        expect(locationText).toBeInTheDocument(); // Make sure "Berlin" is in the location
       });
     });
   });

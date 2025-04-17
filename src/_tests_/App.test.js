@@ -1,6 +1,5 @@
-// src/__tests__/App.test.js
 import React from 'react';
-import { render, within, waitFor } from '@testing-library/react';
+import { render, within, waitFor, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { getEvents } from '../api';
 import App from '../App';
@@ -11,20 +10,19 @@ jest.mock('../api', () => ({
   extractLocations: jest.fn((events) => {
     return [...new Set(events.map((event) => event.location))];
   }),
-  isAuthenticated: jest.fn().mockResolvedValue(true), // ← Mock it to return "authenticated"
-  startOAuthProcess: jest.fn(),                       // ← Also needed for your app logic
+  isAuthenticated: jest.fn().mockResolvedValue(true),
+  startOAuthProcess: jest.fn(),
 }));
-
 
 describe('<App /> component', () => {
   beforeEach(() => {
     getEvents.mockClear();
   });
 
-  test('renders list of events', async () => {
+  test('renders the event list', async () => {
     const mockEvents = [
       { id: 1, summary: 'Event 1', location: 'Berlin, Germany' },
-      { id: 2, summary: 'Event 2', location: 'Berlin, Germany' }
+      { id: 2, summary: 'Event 2', location: 'Berlin, Germany' },
     ];
     getEvents.mockResolvedValue(mockEvents);
 
@@ -34,9 +32,9 @@ describe('<App /> component', () => {
     });
   });
 
-  test('renders CitySearch', async () => {
+  test('renders the CitySearch component', async () => {
     const mockEvents = [
-      { id: 1, summary: 'Event 1', location: 'Berlin, Germany' }
+      { id: 1, summary: 'Event 1', location: 'Berlin, Germany' },
     ];
     getEvents.mockResolvedValue(mockEvents);
 
@@ -46,9 +44,9 @@ describe('<App /> component', () => {
     });
   });
 
-  test('renders NumberOfEvents', async () => {
+  test('renders the NumberOfEvents component', async () => {
     const mockEvents = [
-      { id: 1, summary: 'Event 1', location: 'Berlin, Germany' }
+      { id: 1, summary: 'Event 1', location: 'Berlin, Germany' },
     ];
     getEvents.mockResolvedValue(mockEvents);
 
@@ -59,96 +57,99 @@ describe('<App /> component', () => {
   });
 });
 
-describe('<App /> integration', () => {
+ddescribe('<App /> integration', () => {
   test('renders a list of events matching the city selected by the user', async () => {
     const user = userEvent.setup();
     const mockEvents = [
       { id: 1, summary: 'Berlin Event 1', location: 'Berlin, Germany' },
       { id: 2, summary: 'Berlin Event 2', location: 'Berlin, Germany' },
-      { id: 3, summary: 'London Event', location: 'London, UK' }
+      { id: 3, summary: 'London Event', location: 'London, UK' },
     ];
     getEvents.mockResolvedValue(mockEvents);
 
-    const AppComponent = render(<App />);
-    const AppDOM = AppComponent.container.firstChild;
+    const { container, queryByTestId } = render(<App />);
+    const AppDOM = container.firstChild;
 
     // Wait for the events to load
     await waitFor(() => {
-      expect(AppComponent.queryByTestId('loading')).not.toBeInTheDocument();
+      expect(queryByTestId('loading')).not.toBeInTheDocument();
     });
 
     // Get the CitySearch component and input field
     const CitySearchDOM = AppDOM.querySelector('#city-search');
-    const CitySearchInput = within(CitySearchDOM).queryByRole('textbox');
+    const CitySearchInput = within(CitySearchDOM).getByRole('textbox');
 
     // Type "Berlin" into the city search input
     await user.type(CitySearchInput, 'Berlin');
-    
-    // Get the Berlin, Germany suggestion item
-    const berlinSuggestionItem = within(CitySearchDOM).queryByText('Berlin, Germany');
-    
+
+    // Get the Berlin, Germany suggestion item by test ID
+    const berlinSuggestionItem = await screen.findByTestId('city-suggestion-item');
+
     // Click on the Berlin, Germany suggestion
     await user.click(berlinSuggestionItem);
 
     // Get the EventList component
     const EventListDOM = AppDOM.querySelector('#event-list');
-    
+
     // Wait for the events to update based on the city selection
-    await waitFor(() => {
-      const allRenderedEventItems = within(EventListDOM).queryAllByRole('listitem');
-      
+    await waitFor(async () => {
+      const allRenderedEventItems = await within(EventListDOM).findAllByRole('listitem');
+
       // Filter the mock events to just those in Berlin
       const berlinEvents = mockEvents.filter(
-        event => event.location === 'Berlin, Germany'
+        (event) => event.location === 'Berlin, Germany'
       );
-      
+
       // Expect the number of rendered events to match the number of Berlin events
       expect(allRenderedEventItems.length).toBe(berlinEvents.length);
-      
+
       // Check that all rendered events are from Berlin
-      allRenderedEventItems.forEach(event => {
+      allRenderedEventItems.forEach((event) => {
         expect(event.textContent).toContain('Berlin');
       });
     });
   });
 
-  test('renders the number of events specified by the user', async () => {
+  test('updates the number of events shown when user specifies a number', async () => {
     const user = userEvent.setup();
-    
+
     // Create 5 mock events
     const mockEvents = Array.from({ length: 5 }, (_, i) => ({
       id: i + 1,
       summary: `Event ${i + 1}`,
-      location: 'Berlin, Germany'
+      location: 'Berlin, Germany',
     }));
-    
+
     getEvents.mockResolvedValue(mockEvents);
 
-    const AppComponent = render(<App />);
-    const AppDOM = AppComponent.container.firstChild;
+    const { container, queryByTestId } = render(<App />);
+    const AppDOM = container.firstChild;
 
     // Wait for the events to load
     await waitFor(() => {
-      expect(AppComponent.queryByTestId('loading')).not.toBeInTheDocument();
+      expect(queryByTestId('loading')).not.toBeInTheDocument();
+    });
+
+    // Verify that all 5 events are initially rendered
+    const EventListDOM = AppDOM.querySelector('#event-list');
+    await waitFor(() => {
+      const allRenderedEventItems = within(EventListDOM).getAllByRole('listitem');
+      expect(allRenderedEventItems.length).toBe(5);
     });
 
     // Get the NumberOfEvents component and input field
     const NumberOfEventsDOM = AppDOM.querySelector('#number-of-events');
-    const NumberOfEventsInput = within(NumberOfEventsDOM).queryByRole('spinbutton');
-    
+    const NumberOfEventsInput = within(NumberOfEventsDOM).getByRole('spinbutton');
+
     // Set the number of events to 2
     await user.clear(NumberOfEventsInput);
     await user.type(NumberOfEventsInput, '2');
-    
-    // Get the EventList component
-    const EventListDOM = AppDOM.querySelector('#event-list');
-    
+
     // Wait for the events to update based on the number specified
     await waitFor(() => {
-      const allRenderedEventItems = within(EventListDOM).queryAllByRole('listitem');
-      
-      // Expect only 2 events to be rendered
-      expect(allRenderedEventItems.length).toBe(2);
+      const allRenderedEventItems = within(EventListDOM).getAllByRole('listitem');
+      expect(allRenderedEventItems.length).toBe(2);  // Expect the number of events to be 2
     });
   });
 });
+
