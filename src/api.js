@@ -189,7 +189,6 @@ if (code) {
 }*/
 
 import mockData from './mock-data';
-//import { logout, startOAuthProcess } from './auth-service';
 import NProgress from 'nprogress';
 
 const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev';
@@ -205,14 +204,32 @@ const extractLocations = (events) => {
 };
 
 // Utility: Clean URL after OAuth
-export const removeQueryParams = () => {
+const removeQueryParams = () => {
   const newUrl = window.location.origin + window.location.pathname;
   window.history.pushState({}, document.title, newUrl);
   console.log('Cleaned URL:', newUrl);
 };
 
+// Auth functions
+const logout = async () => {
+  sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  sessionStorage.removeItem(AUTH_EXPIRY_KEY);
+  console.log('Logged out successfully');
+};
+
+const startOAuthProcess = async () => {
+  try {
+    const authUrl = await getAuthURL();
+    console.log('Redirecting to OAuth:', authUrl);
+    window.location.assign(authUrl);
+  } catch (error) {
+    console.error('OAuth process failed:', error);
+    throw error;
+  }
+};
+
 // Get Google OAuth URL from backend
-export const getAuthURL = async () => {
+const getAuthURL = async () => {
   try {
     const res = await fetch(`${API_BASE_URL}/api/get-auth-url`);
     if (!res.ok) throw new Error(`Auth URL request failed: ${res.status}`);
@@ -225,7 +242,7 @@ export const getAuthURL = async () => {
 };
 
 // Validate token with Google
-export const checkToken = async (token) => {
+const checkToken = async (token) => {
   try {
     const res = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${token}`);
     const result = await res.json();
@@ -237,7 +254,7 @@ export const checkToken = async (token) => {
 };
 
 // Check if user is authenticated
-export const isAuthenticated = async () => {
+const isAuthenticated = async () => {
   const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
   const expiry = parseInt(sessionStorage.getItem(AUTH_EXPIRY_KEY), 10);
 
@@ -258,7 +275,7 @@ export const isAuthenticated = async () => {
 };
 
 // Get and store access token using OAuth code
-export const getAccessToken = async (code) => {
+const getAccessToken = async (code) => {
   try {
     const res = await fetch(`${API_BASE_URL}/api/token/${encodeURIComponent(code)}`);
     if (!res.ok) {
@@ -280,7 +297,7 @@ export const getAccessToken = async (code) => {
 };
 
 // Main auth flow controller
-export const ensureAuthenticated = async () => {
+const ensureAuthenticated = async () => {
   const code = new URLSearchParams(window.location.search).get('code');
 
   if (code && !sessionStorage.getItem(AUTH_STORAGE_KEY)) {
@@ -296,7 +313,7 @@ export const ensureAuthenticated = async () => {
 };
 
 // Fetch events from API or mock
-export const getEvents = async () => {
+const getEvents = async () => {
   console.log('Getting events...');
   NProgress.start();
 
@@ -335,13 +352,13 @@ export const getEvents = async () => {
 };
 
 // Optional: log out manually
-export const logoutUser = async () => {
+const logoutUser = async () => {
   await logout();
   window.location.reload();
 };
 
 // Initialize app on load
-export const initializeApp = async () => {
+const initializeApp = async () => {
   console.log('Initializing app...');
   if (new URLSearchParams(window.location.search).has('code')) {
     try {
@@ -362,9 +379,16 @@ export const initializeApp = async () => {
 
 document.addEventListener('DOMContentLoaded', initializeApp);
 
+// Export all functions at once to avoid duplicates
 export {
   extractLocations,
-  //getEvents,
-  //isAuthenticated,
-  startOAuthProcess // Ensure this is exported
+  getEvents,
+  isAuthenticated,
+  startOAuthProcess,
+  getAuthURL,
+  getAccessToken,
+  logoutUser,
+  removeQueryParams,
+  ensureAuthenticated,
+  initializeApp
 };
