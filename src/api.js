@@ -189,7 +189,7 @@ if (code) {
 }*/
 
 import mockData from './mock-data';
-//import { logout, startOAuthProcess } from './auth-service';
+import { logout, startOAuthProcess } from './auth-service';
 import NProgress from 'nprogress';
 
 const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev';
@@ -361,12 +361,3 @@ export const initializeApp = async () => {
 };
 
 document.addEventListener('DOMContentLoaded', initializeApp);
-// Ensure these functions are already defined above
-export {
-  extractLocations,
-  getEvents,
-  isAuthenticated,
-  startOAuthProcess,
-};
-
-
