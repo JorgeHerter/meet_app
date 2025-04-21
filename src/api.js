@@ -199,7 +199,7 @@ const AUTH_STORAGE_KEY = 'access_token';
 const AUTH_EXPIRY_KEY = 'token_expiry';
 
 // Utility: Extract unique locations
-export const extractLocations = (events) => {
+const extractLocations = (events) => {
   const locations = events.map((event) => event.location);
   return [...new Set(locations)];
 };
