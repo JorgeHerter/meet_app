@@ -367,7 +367,7 @@ export {
   //getEvents,
   //isAuthenticated,
   startOAuthProcess, // Ensure this is exported
-  getAuthURL,
-  getAccessToken,
-  logoutUser,
+  //getAuthURL,
+  //getAccessToken,
+  //logoutUser,
 };
