@@ -364,7 +364,7 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 
 export {
   extractLocations,
-  getEvents,
+  //getEvents,
   isAuthenticated,
   startOAuthProcess, // Ensure this is exported
   getAuthURL,
