@@ -59,10 +59,24 @@ const App = () => {
 
   // Effect to fetch events once authenticated
   useEffect(() => {
-    if (authenticated) {
-      fetchData();
-    }
-  }, [authenticated, currentCity, currentNOE]); // Runs when authenticated, currentCity, or currentNOE changes
+    const initializeApp = async () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const isMock = searchParams.get('mock') === 'true';
+  
+      if (isMock) {
+        console.log("Running in mock mode, skipping OAuth");
+  
+        // Optionally load mock data or just allow fetchData() to proceed
+        setAuthenticated(true);
+        return;
+      }
+  
+      await handleAuthentication();
+    };
+  
+    initializeApp();
+  }, []);
+  
 
   return (
     <div className="App">

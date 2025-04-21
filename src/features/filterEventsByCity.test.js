@@ -1,11 +1,7 @@
 import React from 'react';
-import { render, within, waitFor, fireEvent } from '@testing-library/react';
+import { render, within, waitFor, fireEvent, screen } from '@testing-library/react';
 import { loadFeature, defineFeature } from 'jest-cucumber';
-import { isAuthenticated, getEvents, extractLocations, startOAuthProcess } from '../api';  // Adjust the relative path
-
 import App from '../App';
-
-const feature = loadFeature(require.resolve('./filterEventsByCity.feature'));
 
 jest.mock('../api', () => ({
   isAuthenticated: jest.fn().mockResolvedValue(true),
@@ -18,26 +14,26 @@ jest.mock('../api', () => ({
   startOAuthProcess: jest.fn().mockResolvedValue(undefined)
 }));
 
+const feature = loadFeature(require.resolve('./filterEventsByCity.feature'));
+
 defineFeature(feature, test => {
   test('When user hasn’t searched for a city, show upcoming events from all cities.', ({ given, when, then }) => {
     let AppComponent;
     let EventListDOM;
 
     given('user hasn’t searched for any city', () => {
-      // No user input needed here
+      // No setup needed
     });
 
     when('the user opens the app', async () => {
       AppComponent = render(<App />);
-      await waitFor(() => expect(AppComponent.queryByTestId('loading')).not.toBeInTheDocument());
+      await waitFor(() => expect(AppComponent.queryByTestId('event-list')).toBeInTheDocument());
       EventListDOM = AppComponent.container.querySelector('#event-list');
     });
 
     then('the user should see the list of all upcoming events.', async () => {
-      await waitFor(() => {
-        const EventListItems = within(EventListDOM).queryAllByRole('listitem');
-        expect(EventListItems.length).toBeGreaterThan(0); // or expect(EventListItems.length).toBe(32);
-      });
+      const events = within(EventListDOM).queryAllByRole('listitem');
+      expect(events.length).toBe(3); // From mocked getEvents
     });
   });
 
@@ -47,19 +43,18 @@ defineFeature(feature, test => {
 
     given('the main page is open', async () => {
       AppComponent = render(<App />);
-      await waitFor(() => expect(AppComponent.queryByTestId('loading')).not.toBeInTheDocument());
+      await waitFor(() => expect(AppComponent.queryByTestId('city-search')).toBeInTheDocument());
       CitySearchInput = await AppComponent.findByPlaceholderText('Search for a city');
     });
 
     when('user starts typing in the city textbox', async () => {
-      // Simulate user typing "Berlin" in the city input box
-      await waitFor(() => fireEvent.change(CitySearchInput, { target: { value: 'Berlin' } }));
+      fireEvent.change(CitySearchInput, { target: { value: 'Berlin' } });
     });
 
     then('the user should receive a list of cities (suggestions) that match what they’ve typed', async () => {
-      const suggestionList = await AppComponent.findAllByRole('listitem');
-      expect(suggestionList.length).toBeGreaterThan(0);
-      expect(suggestionList.some(item => item.textContent.includes('Berlin'))).toBe(true);
+      const suggestions = await screen.findAllByRole('listitem');
+      expect(suggestions.length).toBeGreaterThan(0);
+      expect(suggestions.some(item => item.textContent.includes('Berlin'))).toBe(true);
     });
   });
 
@@ -67,65 +62,59 @@ defineFeature(feature, test => {
     let AppComponent;
     let CitySearchInput;
     let EventListDOM;
-  
+
     given(/^user was typing "(.*)" in the city textbox$/, async (city) => {
       AppComponent = render(<App />);
-      await waitFor(() => expect(AppComponent.queryByTestId('loading')).not.toBeInTheDocument());
       CitySearchInput = await AppComponent.findByPlaceholderText('Search for a city');
-      await fireEvent.change(CitySearchInput, { target: { value: city } });
+      fireEvent.change(CitySearchInput, { target: { value: city } });
     });
-  
+
     and('the list of suggested cities is showing', async () => {
         const input = await AppComponent.findByTestId('city-input');
       
-        // Simulate focus first (to show suggestions)
-        fireEvent.focus(input);
+        fireEvent.focus(input); // Triggers setShowSuggestions(true)
+        fireEvent.change(input, { target: { value: 'Berlin' } }); // Updates query + shows matching cities
       
-        // Suggestions render asynchronously, so wait for them
+        // Wait until the suggestions list is rendered
         await waitFor(() => {
           const suggestionsList = AppComponent.getByTestId('suggestions-list');
           expect(suggestionsList).toBeInTheDocument();
+      
+          const items = within(suggestionsList).getAllByTestId('city-suggestion-item');
+          expect(items.length).toBeGreaterThan(0);
         });
       });
       
-      when(/^the user selects a city \(e\.g\., "(.*)"\) from the list$/, async (city) => {
-        const AppComponent = render(<App />);
-      
-        const cityInput = AppComponent.getByPlaceholderText('Search for a city');
-        fireEvent.change(cityInput, { target: { value: city } });
-      
-        // Wait for suggestions to show up
-        const suggestionsList = await AppComponent.findByTestId('suggestions-list');
-      
-        const fullCityName = `${city}, Germany`;
-      
-        // Get all list items and click the correct one
-        const allSuggestions = within(suggestionsList).getAllByRole('listitem');
-        const selectedSuggestion = allSuggestions.find((li) => li.textContent === fullCityName);
-        fireEvent.click(selectedSuggestion);
-      
-        // Wait for input to update after clicking suggestion
-        await waitFor(() => {
-          expect(cityInput.value).toBe(fullCityName);
-        });
+
+    when(/^the user selects a city \(e\.g\., "(.*)"\) from the list$/, async (cityName) => {
+      const fullCity = `${cityName}, Germany`;
+      const suggestionsList = AppComponent.getByTestId('suggestions-list');
+      const suggestionItems = within(suggestionsList).getAllByRole('listitem');
+      const targetSuggestion = suggestionItems.find(item => item.textContent === fullCity);
+
+      fireEvent.click(targetSuggestion);
+
+      // Wait for input to update
+      await waitFor(() => {
+        expect(CitySearchInput.value).toBe(fullCity);
       });
-      
-      
-    then('their city should be changed to that city (i.e., “Berlin, Germany”)', async () => {
-      const cityInput = await AppComponent.findByPlaceholderText('Search for a city');
-      expect(cityInput.value).toBe('Berlin, Germany');
     });
-  
+
+    then(/^their city should be changed to that city \(i\.e\., "(.*)"\)$/, async (selectedCity) => {
+      expect(CitySearchInput.value).toBe(selectedCity);
+    });
+
     and('the user should receive a list of upcoming events in that city', async () => {
       EventListDOM = AppComponent.container.querySelector('#event-list');
       const filteredEventItems = within(EventListDOM).queryAllByRole('listitem');
+
+      // All items should be from Berlin
       filteredEventItems.forEach(event => {
         expect(event.textContent).toContain('Berlin');
       });
     });
   });
-  });
-
+});
 
 
 

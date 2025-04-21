@@ -100,7 +100,8 @@ describe('<CitySearch /> component', () => {
     await user.click(suggestionListItems[0]);
 
     // Ensure the value in the textbox matches the clicked suggestion
-    expect(cityTextBox).toHaveValue(suggestionListItems[0].textContent.trim());
+    expect(cityTextBox.value).toBe('Berlin, Germany');
+
 
     // Suggestions list should disappear after selection
     const updatedSuggestionList = CitySearchComponent.queryByTestId('suggestions-list');
@@ -111,6 +112,7 @@ describe('<CitySearch /> component', () => {
 describe('<CitySearch /> integration', () => {
   test('updates filtered events when user selects a city from suggestions', async () => {
     const user = userEvent.setup();
+
     const mockEvents = [
       { id: 1, summary: 'Berlin Event 1', location: 'Berlin, Germany' },
       { id: 2, summary: 'Berlin Event 2', location: 'Berlin, Germany' },
@@ -118,51 +120,44 @@ describe('<CitySearch /> integration', () => {
     ];
     getEvents.mockResolvedValue(mockEvents);
 
-    const AppComponent = render(<App />);
-    const AppDOM = AppComponent.container.firstChild;
+    const { container, queryByTestId } = render(<App />);
 
-    // Wait for the events to load
+    // Wait for events to finish loading
     await waitFor(() => {
-      expect(AppComponent.queryByTestId('loading')).not.toBeInTheDocument();
+      expect(queryByTestId('loading')).not.toBeInTheDocument();
     });
 
-    // Verify that all events are initially shown
-    const EventListDOM = AppDOM.querySelector('#event-list');
-    let eventItems = within(EventListDOM).queryAllByRole('listitem');
-    expect(eventItems.length).toBe(mockEvents.length);
+    // Grab city input
+    const cityInput = queryByTestId('city-input');
+    await user.click(cityInput);
+    await user.type(cityInput, 'Berlin');
 
-    // Get the CitySearch component and input field
-    const CitySearchDOM = AppDOM.querySelector('#city-search');
-    const cityTextBox = within(CitySearchDOM).queryByTestId('city-input');
+    // Wait for suggestions
+    const suggestionsList = await within(container).findByTestId('suggestions-list');
+    const berlinSuggestionItem = within(suggestionsList).getByText('Berlin, Germany');
 
-    // Type "Berlin" into the city search input
-    await user.click(cityTextBox);
-    await user.type(cityTextBox, 'Berlin');
-
-    // Wait for suggestions list to appear
-    const suggestionsList = await within(CitySearchDOM).findByTestId('suggestions-list');
-
-    // Get the Berlin, Germany suggestion item and click it
-    const berlinSuggestionItem = within(suggestionsList).queryByText('Berlin, Germany');
+    // Click suggestion
     await user.click(berlinSuggestionItem);
 
-    // Wait for the events to update based on the city selection
+    // Wait for textbox value to update
     await waitFor(() => {
-      const filteredEventItems = within(EventListDOM).queryAllByRole('listitem');
+      expect(cityInput.value).toBe('Berlin, Germany');
+    });
 
-      // Filter the mock events to just those in Berlin
-      const berlinEvents = mockEvents.filter(
-        event => event.location === 'Berlin, Germany'
-      );
+    // Re-query event list after city selection
+    const updatedEventList = container.querySelector('#event-list');
+    const berlinEvents = mockEvents.filter(e => e.location === 'Berlin, Germany');
 
-      // Expect the number of rendered events to match the number of Berlin events
-      expect(filteredEventItems.length).toBe(berlinEvents.length);
+    // Wait for list to update and assert event count
+    await waitFor(() => {
+      const filteredItems = within(updatedEventList).queryAllByRole('listitem');
+      expect(filteredItems.length).toBe(berlinEvents.length);
 
-      // Check that all rendered events are from Berlin
-      filteredEventItems.forEach(event => {
-        const locationText = within(event).queryByText(/Berlin/);
-        expect(locationText).toBeInTheDocument(); // Make sure "Berlin" is in the location
+      // Assert all filtered events contain Berlin
+      filteredItems.forEach(item => {
+        expect(item.textContent).toMatch(/Berlin/);
       });
     });
   });
 });
+

@@ -1,9 +1,10 @@
-module.exports = {
+   module.exports = {
     presets: [
-      '@babel/preset-env',
-      '@babel/preset-react',
+      '@babel/preset-env', 
+      '@babel/preset-react', 
+      //'@babel/preset-typescript', // Add TypeScript preset
     ],
     "plugins": [
     "@babel/plugin-transform-runtime"
   ]
-   };
+  };

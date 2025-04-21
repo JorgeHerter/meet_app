@@ -89,53 +89,57 @@ const CitySearch = ({ allLocations, setCurrentCity }) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
 
-  // Optional: useEffect to initialize suggestions based on allLocations
   useEffect(() => {
-    setSuggestions(allLocations); // Set suggestions initially based on allLocations
+    setSuggestions(allLocations); // Initialize with all locations
   }, [allLocations]);
 
   const handleInputChanged = (event) => {
     const value = event.target.value;
     setQuery(value);
 
-    if (!allLocations) return; // Early return if allLocations is not defined
+    if (!allLocations) return;
 
-    const filteredLocations = allLocations.filter((location) =>
-      location.toUpperCase().includes(value.toUpperCase())
-    );
+    const filteredLocations = allLocations.filter((location) => {
+      const locationStr = typeof location === 'string' ? location : location.label;
+      return locationStr.toUpperCase().includes(value.toUpperCase());
+    });
 
-    setSuggestions(filteredLocations); // Update suggestions based on user input
+    setSuggestions(filteredLocations);
   };
 
-  const handleItemClicked = (value) => {
+  const handleItemClicked = (event) => {
+    const value = String(event.target.textContent).trim();
     setQuery(value);
     setShowSuggestions(false);
     setCurrentCity(value);
   };
-  
 
   return (
-    <div id="city-search" className='city-search' data-testid="city-search">
+    <div id="city-search" className="city-search" data-testid="city-search">
       <input
         type="text"
         className="city"
         placeholder="Search for a city"
-        data-testid='city-input'
+        data-testid="city-input"
         value={query}
-        onFocus={() => setShowSuggestions(true)}  // Show suggestions when focused
-        onChange={handleInputChanged}  // Handle input changes
+        onFocus={() => setShowSuggestions(true)}
+        onChange={handleInputChanged}
       />
       {showSuggestions && (
         <ul className="suggestions" data-testid="suggestions-list">
-          {suggestions.map((suggestion, index) => (
-            <li
-              onClick={handleItemClicked}
-              key={index} // Use index as key to avoid duplication issues
-            >
-              {suggestion}
-            </li>
-          ))}
-          {/* Always include the "See all cities" item */}
+          {suggestions.map((suggestion, index) => {
+            const label = typeof suggestion === 'string' ? suggestion : suggestion.label;
+            return (
+    <li
+      data-testid="city-suggestion-item"
+      key={index}
+      onClick={handleItemClicked}
+    >
+      {label}
+    </li>
+  );
+})}
+
           <li key="See all cities" onClick={handleItemClicked}>
             <b>See all cities</b>
           </li>
@@ -146,6 +150,7 @@ const CitySearch = ({ allLocations, setCurrentCity }) => {
 };
 
 export default CitySearch;
+
 
 
 

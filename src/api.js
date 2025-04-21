@@ -189,6 +189,8 @@ if (code) {
 }*/
 
 import mockData from './mock-data';
+import { ensureAuthenticated, logout, startOAuthProcess } from './auth-service'; // adjust as needed
+import NProgress from 'nprogress';
 
 // Set API_BASE_URL based on the environment
 const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev';
@@ -307,8 +309,19 @@ export const ensureAuthenticated = async () => {
 // Function to get events from AWS Lambda
 export const getEvents = async () => {
   console.log('Getting events...');
-  
-  // Ensure authentication before proceeding
+  NProgress.start();
+
+  // ✅ Handle mock mode FIRST, before doing any auth logic
+  const isLocal = window.location.href.includes('localhost');
+  const isMock = window.location.search.includes('mock=true');
+
+  if (isLocal || isMock) {
+    console.log('✅ Mock mode enabled – using mock data.');
+    NProgress.done();
+    return mockData;
+  }
+
+  // ⛔️ Only do auth if NOT in mock mode
   try {
     await ensureAuthenticated();
   } catch (error) {
@@ -316,7 +329,7 @@ export const getEvents = async () => {
     throw error;
   }
 
-  // We're now authenticated, get the token
+  // ✅ Now authenticated, continue to fetch from API
   const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
   try {
     const url = `${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`;
@@ -334,10 +347,12 @@ export const getEvents = async () => {
     }
 
     const { events } = await response.json();
-    console.log('Successfully fetched events:', events.length);
+    console.log('✅ Successfully fetched events:', events.length);
+    NProgress.done();
     return events;
   } catch (error) {
-    console.error('Error fetching events:', error);
+    console.error('❌ Error fetching events:', error);
+    NProgress.done();
     throw error;
   }
 };
