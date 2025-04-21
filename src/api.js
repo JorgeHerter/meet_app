@@ -366,6 +366,5 @@ export {
   extractLocations,
   //getEvents,
   //isAuthenticated,
-  startOAuthProcess, // Ensure this is exported
-  logoutUser,
+  startOAuthProcess // Ensure this is exported
 };
