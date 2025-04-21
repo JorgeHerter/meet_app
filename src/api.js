@@ -362,5 +362,5 @@ export const initializeApp = async () => {
 
 document.addEventListener('DOMContentLoaded', initializeApp);
 export { startOAuthProcess };
-export { logoutUser };
+
 
