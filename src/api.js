@@ -363,11 +363,11 @@ export const initializeApp = async () => {
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 export {
-  //extractLocations,
-  //getEvents,
-  //isAuthenticated,
+  extractLocations,
+  getEvents,
+  isAuthenticated,
   startOAuthProcess, // Ensure this is exported
-  //getAuthURL,
-  //getAccessToken,
-  //logoutUser,
+  getAuthURL,
+  getAccessToken,
+  logoutUser,
 };
