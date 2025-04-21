@@ -361,6 +361,12 @@ export const initializeApp = async () => {
 };
 
 document.addEventListener('DOMContentLoaded', initializeApp);
-export { startOAuthProcess };
+// Ensure these functions are already defined above
+export {
+  extractLocations,
+  getEvents,
+  isAuthenticated,
+  startOAuthProcess,
+};
 
 
