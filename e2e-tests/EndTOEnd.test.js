@@ -1,26 +1,19 @@
-// e2e/EndToEnd.test.js
 import { test, expect } from '@playwright/test';
 
-test.describe('Meet App E2E on Deployed Site', () => {
-
-  test.beforeEach(async ({ page }) => {
-    // Clear cookies and storage to avoid redirection during login
-    await page.context().clearCookies();
-    
-    // Clear localStorage and sessionStorage manually
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
-
-    // Ensure we're loading the correct URL with mock=true
+test.beforeEach(async ({ page }) => {
     await page.goto('https://meet-app-psi.vercel.app/?mock=true');
-    
-    // Wait for the .event selector to ensure that the event is loaded on the page
-    await page.waitForSelector('.event', { timeout: 60000 }); // Increase timeout for page load
+  
+    // Fake login state (if your app checks localStorage or cookies)
+    await page.evaluate(() => {
+      localStorage.setItem('access_token', 'test');
+    });
+  
+    await page.reload(); // Reload to trigger app logic with token
+  
+    await page.waitForSelector('.event', { timeout: 60000 });
   });
-
-  test('Event is collapsed by default', async ({ page }) => {
+  
+  test('Event is collapsed by default', async () => {
     // Select the first event on the page
     const event = page.locator('.event').first();
 
@@ -29,7 +22,7 @@ test.describe('Meet App E2E on Deployed Site', () => {
     await expect(details).toHaveCount(0); // Ensure there are no details by default
   });
 
-  test('User can expand event details', async ({ page }) => {
+  test('User can expand event details', async () => {
     const event = page.locator('.event').first();
     const button = event.locator('.details-btn');
 
@@ -40,7 +33,7 @@ test.describe('Meet App E2E on Deployed Site', () => {
     await expect(event.locator('.details')).toBeVisible();
   });
 
-  test('User can collapse event details', async ({ page }) => {
+  test('User can collapse event details', async () => {
     const event = page.locator('.event').first();
     const button = event.locator('.details-btn');
 
@@ -52,8 +45,5 @@ test.describe('Meet App E2E on Deployed Site', () => {
     await button.click();
     await expect(event.locator('.details')).toHaveCount(0); // Ensure details are collapsed
   });
-
-});
-
 
 

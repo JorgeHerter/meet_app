@@ -298,19 +298,20 @@ const getAccessToken = async (code) => {
 
 // Main auth flow controller
 const ensureAuthenticated = async () => {
-  const code = new URLSearchParams(window.location.search).get('code');
+  const isLocal = window.location.href.includes('localhost');
+  const isMock = window.location.search.includes('mock=true');
 
-  if (code && !sessionStorage.getItem(AUTH_STORAGE_KEY)) {
-    await getAccessToken(code);
-    removeQueryParams();
+  if (isLocal || isMock) {
+    console.log('Skipping authentication in mock mode');
+    return;
   }
 
   const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
   if (!token) {
-    await startOAuthProcess();
-    return new Promise(() => {}); // Never resolve (redirecting)
+    await startOAuthProcess(); // only in non-mock mode
   }
 };
+
 
 // Fetch events from API or mock
 const getEvents = async () => {
