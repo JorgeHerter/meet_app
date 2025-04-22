@@ -197,6 +197,7 @@ const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev
 const AUTH_STORAGE_KEY = 'access_token';
 const AUTH_EXPIRY_KEY = 'token_expiry';
 
+
 // Utility: Extract unique locations
 const extractLocations = (events) => {
   const locations = events.map((event) => event.location);
@@ -298,19 +299,28 @@ const getAccessToken = async (code) => {
 
 // Main auth flow controller
 const ensureAuthenticated = async () => {
-  const isLocal = window.location.href.includes('localhost');
-  const isMock = window.location.search.includes('mock=true');
+  const isMock =
+    window.location.search.includes('mock=true') ||
+    localStorage.getItem('mock') === 'true';
 
-  if (isLocal || isMock) {
-    console.log('Skipping authentication in mock mode');
+  if (isMock) {
+    console.log('✅ MOCK MODE: Skipping authentication');
+    return;
+  }
+
+  const isLocal = window.location.href.includes('localhost');
+  if (isLocal) {
+    console.log('🛠 LOCAL MODE: Skipping authentication');
     return;
   }
 
   const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
   if (!token) {
-    await startOAuthProcess(); // only in non-mock mode
+    console.log('🔐 No token found, starting OAuth...');
+    await startOAuthProcess();
   }
 };
+
 
 
 // Fetch events from API or mock
@@ -319,7 +329,9 @@ const getEvents = async () => {
   NProgress.start();
 
   const isLocal = window.location.href.includes('localhost');
-  const isMock = window.location.search.includes('mock=true');
+  const isMock =
+    window.location.search.includes('mock=true') ||
+    localStorage.getItem('mock') === 'true'; // <-- Added this line
 
   if (isLocal || isMock) {
     console.log('Using mock data');
@@ -351,6 +363,7 @@ const getEvents = async () => {
     throw error;
   }
 };
+
 
 // Optional: log out manually
 const logoutUser = async () => {

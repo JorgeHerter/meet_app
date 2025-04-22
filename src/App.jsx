@@ -16,29 +16,18 @@ const App = () => {
   const [error, setError] = useState(null);
   const [authenticated, setAuthenticated] = useState(false);
 
-  // Function to handle authentication
-  const handleAuthentication = async () => {
-    const isAuth = await isAuthenticated();
-    if (!isAuth) {
-      console.log("User not authenticated, starting OAuth process...");
-      await startOAuthProcess();
-    } else {
-      console.log("User authenticated");
-      setAuthenticated(true);
-    }
-  };
-
   // Function to fetch events
   const fetchData = async () => {
     try {
       setLoading(true);
       const allEvents = await getEvents();
+
       const filteredEvents =
         currentCity === "See all cities"
           ? allEvents
           : allEvents.filter((event) => event.location === currentCity);
 
-      setEvents(filteredEvents.slice(0, currentNOE)); // Limit events based on currentNOE
+      setEvents(filteredEvents.slice(0, currentNOE));
       setAllLocations(extractLocations(allEvents));
     } catch (err) {
       console.error("Error fetching events:", err);
@@ -48,39 +37,47 @@ const App = () => {
     }
   };
 
-  // Effect to handle authentication on first render
-  useEffect(() => {
-    const initializeApp = async () => {
-      await handleAuthentication();
-    };
-
-    initializeApp();
-  }, []);  // Only run once when the component mounts
-
-  // Effect to fetch events once authenticated
+  // Auth and mock mode logic
   useEffect(() => {
     const initializeApp = async () => {
       const searchParams = new URLSearchParams(window.location.search);
       const isMock = searchParams.get('mock') === 'true';
-  
+
       if (isMock) {
-        console.log("Running in mock mode, skipping OAuth");
-  
-        // Optionally load mock data or just allow fetchData() to proceed
+        console.log("🧪 Running in mock mode — skipping real authentication");
+        localStorage.setItem('mock', 'true');
+        sessionStorage.setItem('access_token', 'test-token');
         setAuthenticated(true);
         return;
       }
-  
-      await handleAuthentication();
+
+      const isAuth = await isAuthenticated();
+      if (!isAuth) {
+        console.log("🔐 User not authenticated, starting OAuth process...");
+        await startOAuthProcess();
+      } else {
+        console.log("✅ User authenticated");
+        setAuthenticated(true);
+      }
     };
-  
+
     initializeApp();
   }, []);
-  
+
+  // Load events once authenticated or when filters change
+  useEffect(() => {
+    if (authenticated) {
+      fetchData();
+    }
+  }, [authenticated, currentCity, currentNOE]);
 
   return (
     <div className="App">
       <h1>Meet App</h1>
+
+      {localStorage.getItem('mock') === 'true' && (
+        <div style={{ color: 'green' }}>✅ Mock Mode Enabled</div>
+      )}
 
       {error && <div className="error" data-testid="error">{error}</div>}
 
@@ -98,6 +95,7 @@ const App = () => {
 };
 
 export default App;
+
 
 
 
