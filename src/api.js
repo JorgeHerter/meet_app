@@ -197,7 +197,6 @@ const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev
 const AUTH_STORAGE_KEY = 'access_token';
 const AUTH_EXPIRY_KEY = 'token_expiry';
 
-
 // Utility: Extract unique locations
 const extractLocations = (events) => {
   const locations = events.map((event) => event.location);
@@ -309,6 +308,7 @@ const ensureAuthenticated = async () => {
   }
 
   const isLocal = window.location.href.includes('localhost');
+
   if (isLocal) {
     console.log('🛠 LOCAL MODE: Skipping authentication');
     return;
@@ -322,19 +322,13 @@ const ensureAuthenticated = async () => {
 };
 
 
-
 // Fetch events from API or mock
 const getEvents = async () => {
   console.log('Getting events...');
   NProgress.start();
 
-  const isLocal = window.location.href.includes('localhost');
-  const isMock =
-    window.location.search.includes('mock=true') ||
-    localStorage.getItem('mock') === 'true'; // <-- Added this line
-
-  if (isLocal || isMock) {
-    console.log('Using mock data');
+  if (window.location.href.includes('localhost')) {
+    console.log('Running in LOCALHOST mode, returning mock data.');
     NProgress.done();
     return mockData;
   }
@@ -364,7 +358,6 @@ const getEvents = async () => {
   }
 };
 
-
 // Optional: log out manually
 const logoutUser = async () => {
   await logout();
@@ -374,12 +367,20 @@ const logoutUser = async () => {
 // Initialize app on load
 const initializeApp = async () => {
   console.log('Initializing app...');
+  
+  // Handle OAuth redirect if 'code' exists in the query parameters
   if (new URLSearchParams(window.location.search).has('code')) {
-    try {
-      await ensureAuthenticated();
-      console.log('OAuth redirect handled successfully');
-    } catch (err) {
-      console.error('OAuth redirect failed:', err);
+    const isLocal = window.location.href.includes('localhost');
+    if (!isLocal) {
+      try {
+        await ensureAuthenticated();
+        console.log('OAuth redirect handled successfully');
+      } catch (err) {
+        console.error('OAuth redirect failed:', err);
+      }
+    } else {
+      // If in localhost, clean URL to remove code and handle OAuth flow without redirecting
+      removeQueryParams();
     }
   } else {
     const authenticated = await isAuthenticated();

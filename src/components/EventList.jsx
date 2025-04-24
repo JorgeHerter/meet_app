@@ -38,21 +38,25 @@ const EventList = ({ events = [] }) => {
     ? events.filter(event => event && event.location)
     : [];
 
-  return (
-    <>
-      {validEvents.length === 0 ? (
-        <p data-testid="no-events-msg">No events found</p>
-      ) : (
-        <ul id="event-list" data-testid="event-list">
-          {validEvents.map(event => (
-            <li key={event.id} role="listitem">
-              <Event event={event} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
-  );
+    return (
+      <>
+        {validEvents.length === 0 ? (
+          <p data-testid="no-events-msg">No events found</p>
+        ) : (
+          <ul id="event-list" data-testid="event-list">
+            {validEvents.map(event => (
+              <li
+                key={event.id}
+                role="listitem"
+                data-testid="event-item"
+              >
+                <Event event={event} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </>
+    );    
 };
 
 export default EventList;

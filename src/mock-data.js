@@ -7,7 +7,7 @@ const mockData = [
         "htmlLink": "https://www.google.com/calendar/event?eid=MTExdm1sYmw3cDhnbWMwZmJmNXUxMDdwOHVfMjAyNTAxMTZUMDgwMDAwWiBmdWxsc3RhY2t3ZWJkZXZAY2FyZWVyZm91bmRyeS5jb20",
         "created": "2020-07-01T15:47:59.000Z",
         "updated": "2020-07-01T15:52:58.005Z",
-        "summary": "this is a text test",
+        "summary": "Mock Event 1",
         "description": "We meet every Monday and Thursday to talk about React Native and native app development in general. React Native Tokyo is an inclusive community that tries to cater to all levels of learners during meetups. \n\nJoin us if you are curious to hear about what's new in the field of native app development.",
         "location": "Tokyo, Japan",
         "creator": {
