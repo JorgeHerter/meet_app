@@ -70,11 +70,11 @@ const Event = ({ event }) => {
 
   return (
     <div className="event">
-      <h3>{summary}</h3>
+      <h3 data-testid="event-summary">{summary}</h3>
       <p><strong>Location:</strong> {location}</p>
       <p><strong>Created:</strong> {new Date(created).toLocaleString()}</p>
       <p><strong>Start Time:</strong> {formattedStartTime}</p>
-      <button className="details-button" onClick={toggleDetails}>
+      <button className="details-button" data-testid="toggle-details" onClick={toggleDetails}>
         {showDetails ? "Hide Details" : "Show Details"}
       </button>
 
