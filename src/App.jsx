@@ -95,7 +95,6 @@ const App = () => {
 };
 
 export default App;*/
-// src/App.jsx
 import React, { useEffect, useState } from 'react';
 import CitySearch from './components/CitySearch';
 import EventList from './components/EventList';
@@ -107,22 +106,26 @@ import {
   startOAuthProcess,
 } from './api';
 import './App.css';
+import * as atatus from 'atatus-spa';
+
+// ✅ Atatus config — only in production
+if (process.env.NODE_ENV === 'production') {
+  atatus.config('b1b3462ff17349bd90559fb62636d727').install();
+}
 
 const App = () => {
   const [events, setEvents] = useState([]);
-  const [currentNOE, setCurrentNOE] = useState(32); // Current Number of Events
+  const [currentNOE, setCurrentNOE] = useState(32);
   const [allLocations, setAllLocations] = useState([]);
   const [currentCity, setCurrentCity] = useState('See all cities');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [authenticated, setAuthenticated] = useState(false);
 
-  // 👇 Determines whether we're running locally or in mock mode
   const isMockMode =
     window.location.hostname === 'localhost' ||
     new URLSearchParams(window.location.search).get('mock') === 'true';
 
-  // 👇 Auth and Mock Mode Logic
   useEffect(() => {
     const initializeApp = async () => {
       const searchParams = new URLSearchParams(window.location.search);
@@ -150,14 +153,12 @@ const App = () => {
     initializeApp();
   }, []);
 
-  // 👇 Fetches events once authenticated or when filters change
   useEffect(() => {
     if (authenticated) {
       fetchData();
     }
   }, [authenticated, currentCity, currentNOE]);
 
-  // 👇 Main fetchData logic
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -179,11 +180,17 @@ const App = () => {
     }
   };
 
+  const handleTestError = () => {
+    atatus.notify(new Error('Test Atatus Setup'));
+  };
+
   return (
     <div className="App">
       <h1>Meet App</h1>
 
-      {/* ✅ Visual status indicators for mock and authentication */}
+      {/* Button to test Atatus error reporting */}
+      <button onClick={handleTestError}>Test Atatus Setup in Production</button>
+
       <div style={{ marginBottom: '1rem' }}>
         {authenticated && (
           <div data-testid="auth-status" style={{ color: 'green' }}>
@@ -197,14 +204,12 @@ const App = () => {
         )}
       </div>
 
-      {/* ⚠️ Show errors, if any */}
       {error && (
         <div className="error" data-testid="error">
           {error}
         </div>
       )}
 
-      {/* 🔄 Show loading indicator while fetching */}
       {loading ? (
         <div data-testid="loading">Loading events...</div>
       ) : events.length === 0 ? (
@@ -227,6 +232,9 @@ const App = () => {
 };
 
 export default App;
+
+
+
 
   
 
