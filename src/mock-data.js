@@ -9,7 +9,7 @@ const mockData = [
         "updated": "2020-07-01T15:52:58.005Z",
         "summary": "Mock Event 1",
         "description": "We meet every Monday and Thursday to talk about React Native and native app development in general. React Native Tokyo is an inclusive community that tries to cater to all levels of learners during meetups. \n\nJoin us if you are curious to hear about what's new in the field of native app development.",
-        "location": "Tokyo, Japan",
+        "location": "Virtual",
         "creator": {
           "email": "fullstackwebdev@careerfoundry.com",
           "self": true

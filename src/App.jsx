@@ -108,9 +108,16 @@ import {
 import './App.css';
 import * as atatus from 'atatus-spa';
 
-// ✅ Atatus config — only in production
-if (process.env.NODE_ENV === 'production') {
-  atatus.config('b1b3462ff17349bd90559fb62636d727').install();
+// Initialize Atatus unconditionally for more reliable error tracking
+try {
+  console.log("🔄 Initializing Atatus...");
+  atatus.config('b1b3462ff17349bd90559fb62636d727')
+    .instrumentXHR()  // Track AJAX/fetch requests
+    .captureConsoleErrors()  // Capture console errors
+    .install();
+  console.log("✅ Atatus initialized successfully");
+} catch (err) {
+  console.error("❌ Error initializing Atatus:", err);
 }
 
 const App = () => {
@@ -121,10 +128,23 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [authenticated, setAuthenticated] = useState(false);
+  const [astatusStatus, setAtatusStatus] = useState('Unknown');
 
   const isMockMode =
     window.location.hostname === 'localhost' ||
     new URLSearchParams(window.location.search).get('mock') === 'true';
+
+  // Check if Atatus is properly loaded
+  useEffect(() => {
+    try {
+      const astatusAvailable = typeof atatus !== 'undefined' && typeof atatus.notify === 'function';
+      setAtatusStatus(astatusAvailable ? 'Available' : 'Not available');
+      console.log("Atatus status:", astatusAvailable ? "Available" : "Not available");
+    } catch (err) {
+      console.error("Error checking Atatus status:", err);
+      setAtatusStatus('Error');
+    }
+  }, []);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -140,13 +160,24 @@ const App = () => {
         return;
       }
 
-      const isAuth = await isAuthenticated();
-      if (!isAuth) {
-        console.log("🔐 User not authenticated, starting OAuth process...");
-        await startOAuthProcess();
-      } else {
-        console.log("✅ User authenticated");
-        setAuthenticated(true);
+      try {
+        const isAuth = await isAuthenticated();
+        if (!isAuth) {
+          console.log("🔐 User not authenticated, starting OAuth process...");
+          await startOAuthProcess();
+        } else {
+          console.log("✅ User authenticated");
+          setAuthenticated(true);
+        }
+      } catch (authError) {
+        console.error("❌ Authentication error:", authError);
+        setError('Authentication failed. Please try again.');
+        // Report auth error to Atatus
+        try {
+          atatus.notify(authError);
+        } catch (e) {
+          console.error("❌ Failed to report auth error to Atatus:", e);
+        }
       }
     };
 
@@ -175,13 +206,27 @@ const App = () => {
     } catch (err) {
       console.error('❌ Error fetching events:', err);
       setError('Failed to load events. Please try again later.');
+      // Report data fetch error to Atatus
+      try {
+        atatus.notify(err);
+      } catch (e) {
+        console.error("❌ Failed to report data error to Atatus:", e);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleTestError = () => {
-    atatus.notify(new Error('Test Atatus Setup'));
+    try {
+      console.log("🧪 Testing Atatus error reporting");
+      atatus.notify(new Error('Test Atatus Setup'));
+      console.log("📤 Error sent to Atatus");
+      alert("Test error sent to Atatus. Check Atatus dashboard.");
+    } catch (err) {
+      console.error("❌ Failed to send test error to Atatus:", err);
+      alert("Failed to send error to Atatus: " + err.message);
+    }
   };
 
   return (
@@ -189,7 +234,13 @@ const App = () => {
       <h1>Meet App</h1>
 
       {/* Button to test Atatus error reporting */}
-      <button onClick={handleTestError}>Test Atatus Setup in Production</button>
+      <button onClick={handleTestError}>
+        Test Atatus Setup
+      </button>
+      
+      <div style={{ fontSize: '10px', color: 'gray', marginTop: '5px' }}>
+        Atatus Status: {astatusStatus}
+      </div>
 
       <div style={{ marginBottom: '1rem' }}>
         {authenticated && (
@@ -227,6 +278,10 @@ const App = () => {
           <EventList events={events} />
         </>
       )}
+      
+      <div style={{ fontSize: '10px', color: 'gray', marginTop: '20px' }}>
+        Environment: {process.env.NODE_ENV || 'not set'}
+      </div>
     </div>
   );
 };
