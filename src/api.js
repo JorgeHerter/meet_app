@@ -188,7 +188,7 @@ if (code) {
   startOAuthProcess();
 }*/
 
-import mockData from './mock-data';
+/*import mockData from './mock-data';
 import NProgress from 'nprogress';
 
 const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev';
@@ -406,4 +406,268 @@ export {
   removeQueryParams,
   ensureAuthenticated,
   initializeApp
+};*/
+import mockData from './mock-data';
+import NProgress from 'nprogress';
+
+const API_BASE_URL = 'https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev';
+
+// Constants for session storage
+const AUTH_STORAGE_KEY = 'access_token';
+const AUTH_EXPIRY_KEY = 'token_expiry';
+
+// Utility: Check if in local development mode
+const isLocalMode = () => {
+  return window.location.href.includes('localhost');
+};
+
+// Utility: Check if in mock mode
+const isMockMode = () => {
+  return window.location.search.includes('mock=true') || 
+         localStorage.getItem('mock') === 'true';
+};
+
+// Utility: Extract unique locations
+const extractLocations = (events) => {
+  const locations = events.map((event) => event.location);
+  return [...new Set(locations)];
+};
+
+// Utility: Clean URL after OAuth
+const removeQueryParams = () => {
+  const newUrl = window.location.origin + window.location.pathname;
+  window.history.pushState({}, document.title, newUrl);
+  console.log('Cleaned URL:', newUrl);
+};
+
+// Auth functions
+const logout = async () => {
+  sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  sessionStorage.removeItem(AUTH_EXPIRY_KEY);
+  console.log('Logged out successfully');
+};
+
+const startOAuthProcess = async () => {
+  // Skip OAuth if in local or mock mode
+  if (isLocalMode()) {
+    console.log('🛠 LOCAL MODE: Skipping OAuth process');
+    return;
+  }
+  
+  if (isMockMode()) {
+    console.log('✅ MOCK MODE: Skipping OAuth process');
+    return;
+  }
+  
+  try {
+    const authUrl = await getAuthURL();
+    console.log('Redirecting to OAuth:', authUrl);
+    window.location.assign(authUrl);
+  } catch (error) {
+    console.error('OAuth process failed:', error);
+    throw error;
+  }
+};
+
+// Get Google OAuth URL from backend
+const getAuthURL = async () => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/get-auth-url`);
+    if (!res.ok) throw new Error(`Auth URL request failed: ${res.status}`);
+    const { authUrl } = await res.json();
+    return authUrl;
+  } catch (error) {
+    console.error('Failed to get auth URL:', error);
+    throw error;
+  }
+};
+
+// Validate token with Google
+const checkToken = async (token) => {
+  try {
+    const res = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${token}`);
+    const result = await res.json();
+    return !result.error;
+  } catch (error) {
+    console.error('Token validation failed:', error);
+    return false;
+  }
+};
+
+// Check if user is authenticated
+const isAuthenticated = async () => {
+  // Skip authentication if in local or mock mode
+  if (isLocalMode()) {
+    console.log('🛠 LOCAL MODE: Assuming authenticated');
+    return true;
+  }
+  
+  if (isMockMode()) {
+    console.log('✅ MOCK MODE: Assuming authenticated');
+    return true;
+  }
+
+  const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
+  const expiry = parseInt(sessionStorage.getItem(AUTH_EXPIRY_KEY), 10);
+
+  if (!token || (expiry && Date.now() > expiry)) {
+    console.log('Token missing or expired');
+    await logout();
+    return false;
+  }
+
+  const valid = await checkToken(token);
+  if (!valid) {
+    console.log('Token invalid');
+    await logout();
+    return false;
+  }
+
+  return true;
+};
+
+// Get and store access token using OAuth code
+const getAccessToken = async (code) => {
+  // Skip token fetch if in local or mock mode
+  if (isLocalMode() || isMockMode()) {
+    console.log(`${isLocalMode() ? '🛠 LOCAL' : '✅ MOCK'} MODE: Skipping token fetch`);
+    return "mock-token";
+  }
+  
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/token/${encodeURIComponent(code)}`);
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Failed to get access token');
+    }
+
+    const { access_token, expires_in = 3600 } = await res.json();
+    const expiry = Date.now() + expires_in * 1000;
+
+    sessionStorage.setItem(AUTH_STORAGE_KEY, access_token);
+    sessionStorage.setItem(AUTH_EXPIRY_KEY, expiry.toString());
+
+    return access_token;
+  } catch (error) {
+    console.error('Error getting access token:', error);
+    throw error;
+  }
+};
+
+// Main auth flow controller
+const ensureAuthenticated = async () => {
+  // Skip authentication if in local or mock mode
+  if (isLocalMode()) {
+    console.log('🛠 LOCAL MODE: Skipping authentication');
+    return;
+  }
+  
+  if (isMockMode()) {
+    console.log('✅ MOCK MODE: Skipping authentication');
+    return;
+  }
+
+  const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
+  if (!token) {
+    console.log('🔐 No token found, starting OAuth...');
+    await startOAuthProcess();
+  }
+};
+
+// Fetch events from API or mock
+const getEvents = async () => {
+  console.log('Getting events...');
+  NProgress.start();
+
+  if (isLocalMode()) {
+    console.log('🛠 LOCAL MODE: Returning mock data');
+    NProgress.done();
+    return mockData;
+  }
+  
+  if (isMockMode()) {
+    console.log('✅ MOCK MODE: Returning mock data');
+    NProgress.done();
+    return mockData;
+  }
+
+  try {
+    await ensureAuthenticated();
+    const token = sessionStorage.getItem(AUTH_STORAGE_KEY);
+    const res = await fetch(`${API_BASE_URL}/api/get-events/${encodeURIComponent(token)}`);
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        console.log('Token expired, re-authenticating...');
+        await logout();
+        await startOAuthProcess();
+        throw new Error('Authentication expired');
+      }
+      throw new Error(`Fetch error: ${res.status}`);
+    }
+
+    const { events } = await res.json();
+    NProgress.done();
+    return events;
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    NProgress.done();
+    throw error;
+  }
+};
+
+// Optional: log out manually
+const logoutUser = async () => {
+  await logout();
+  window.location.reload();
+};
+
+// Initialize app on load
+const initializeApp = async () => {
+  console.log('Initializing app...');
+  
+  // Skip OAuth handling if in local or mock mode
+  if (isLocalMode() || isMockMode()) {
+    console.log(`${isLocalMode() ? '🛠 LOCAL' : '✅ MOCK'} MODE: Skipping OAuth initialization`);
+    // Just clean URL if code parameter exists
+    if (new URLSearchParams(window.location.search).has('code')) {
+      removeQueryParams();
+    }
+    return;
+  }
+  
+  // Handle OAuth redirect if 'code' exists in the query parameters
+  if (new URLSearchParams(window.location.search).has('code')) {
+    try {
+      const code = new URLSearchParams(window.location.search).get('code');
+      await getAccessToken(code);
+      removeQueryParams();
+      console.log('OAuth redirect handled successfully');
+    } catch (err) {
+      console.error('OAuth redirect failed:', err);
+    }
+  } else {
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      await startOAuthProcess();
+    } else {
+      console.log('Already authenticated');
+    }
+  }
+};
+
+// Export all functions at once to avoid duplicates
+export {
+  extractLocations,
+  getEvents,
+  isAuthenticated,
+  startOAuthProcess,
+  getAuthURL,
+  getAccessToken,
+  logoutUser,
+  removeQueryParams,
+  ensureAuthenticated,
+  initializeApp,
+  isLocalMode,
+  isMockMode
 };

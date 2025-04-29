@@ -172,6 +172,37 @@ test('User can expand and collapse event details', async ({ page }) => {
     await toggleButton.click();
     await expect(details).toHaveCount(0);
   });
+
+  // Test 4: User can search and select a city
+test('User can search and select a city from suggestions', async ({ page }) => {
+    // Provide a mock list of locations (can be strings or objects with .label)
+    
+    const mockLocations = ['Berlin', 'London', 'New York', 'Tokyo'];
+  
+    // Navigate to the app (assuming it uses mock mode for tests)
+    await page.goto('http://localhost:8080?mock=true');
+  
+    // Wait for the city search input to appear
+    const input = page.locator('[data-testid="city-input"]');
+    await input.waitFor({ state: 'visible', timeout: 5000 });
+  
+    // Focus and type into the input
+    await input.click();
+    await input.fill('vir');
+  
+    // Get visible suggestions
+    const suggestions = page.locator('[data-testid="city-suggestion-item"]');
+    //await expect(suggestions).toHaveCount(1);
+    await expect(suggestions.first()).toContainText('Virtual');
+  
+    // Click on the suggestion
+    await suggestions.first().click();
+  
+    // Assert the input now contains the selected city
+    await expect(input).toHaveValue('Virtual');
+  });
+  
+
   
 
                                             

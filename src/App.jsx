@@ -104,20 +104,55 @@ import {
   getEvents,
   isAuthenticated,
   startOAuthProcess,
+  isLocalMode,
+  isMockMode
 } from './api';
 import './App.css';
 import * as atatus from 'atatus-spa';
 
-// Initialize Atatus unconditionally for more reliable error tracking
+// Global variable to track if Atatus was initialized successfully
+let astatusInitialized = false;
+let astatusDisabledByDev = false;
+
+// Determine if we should allow Atatus testing in development
+const allowAtatusInDev = localStorage.getItem('allow_atatus_in_dev') === 'true';
+const inDevMode = window.location.hostname === 'localhost' || 
+                  new URLSearchParams(window.location.search).get('mock') === 'true';
+
+// Initialize Atatus with environment checks
 try {
-  console.log("🔄 Initializing Atatus...");
-  atatus.config('b1b3462ff17349bd90559fb62636d727')
-    .instrumentXHR()  // Track AJAX/fetch requests
-    .captureConsoleErrors()  // Capture console errors
-    .install();
-  console.log("✅ Atatus initialized successfully");
+  // Skip Atatus in development mode unless explicitly enabled
+  if (!inDevMode || allowAtatusInDev) {
+    console.log(`🔄 Initializing Atatus... (${inDevMode ? 'DEV mode with testing enabled' : 'PRODUCTION mode'})`);
+    
+    // Initialize Atatus properly
+    const astatusConfig = atatus.config('b1b3462ff17349bd90559fb62636d727', {
+      // Set appropriate release stage
+      releaseStage: inDevMode ? 'development' : 'production'
+    });
+    
+    // Check if methods exist before calling them
+    if (typeof astatusConfig.instrumentXHR === 'function') {
+      astatusConfig.instrumentXHR();
+    }
+    
+    if (typeof astatusConfig.captureConsoleErrors === 'function') {
+      astatusConfig.captureConsoleErrors();
+    }
+    
+    if (typeof astatusConfig.install === 'function') {
+      astatusConfig.install();
+    }
+    
+    astatusInitialized = true;
+    console.log("✅ Atatus initialized successfully");
+  } else {
+    console.log("🛠 Dev mode - Atatus monitoring disabled by default");
+    astatusDisabledByDev = true;
+  }
 } catch (err) {
   console.error("❌ Error initializing Atatus:", err);
+  astatusInitialized = false;
 }
 
 const App = () => {
@@ -129,30 +164,34 @@ const App = () => {
   const [error, setError] = useState(null);
   const [authenticated, setAuthenticated] = useState(false);
   const [astatusStatus, setAtatusStatus] = useState('Unknown');
+  const [astatusDevEnabled, setAtatusDevEnabled] = useState(allowAtatusInDev);
 
-  const isMockMode =
-    window.location.hostname === 'localhost' ||
-    new URLSearchParams(window.location.search).get('mock') === 'true';
+  // Check if we're in mock mode using the utility functions
+  const mockModeActive = isLocalMode() || isMockMode();
 
   // Check if Atatus is properly loaded
   useEffect(() => {
     try {
       const astatusAvailable = typeof atatus !== 'undefined' && typeof atatus.notify === 'function';
-      setAtatusStatus(astatusAvailable ? 'Available' : 'Not available');
-      console.log("Atatus status:", astatusAvailable ? "Available" : "Not available");
+      
+      if (mockModeActive && !astatusDevEnabled) {
+        setAtatusStatus('Disabled in dev mode (can enable)');
+      } else if (astatusInitialized) {
+        setAtatusStatus(mockModeActive ? 'Enabled in dev mode' : 'Available');
+      } else {
+        setAtatusStatus(astatusAvailable ? 'Available but not initialized' : 'Not available');
+      }
+      
+      console.log("Atatus status:", astatusStatus);
     } catch (err) {
       console.error("Error checking Atatus status:", err);
       setAtatusStatus('Error');
     }
-  }, []);
+  }, [mockModeActive, astatusDevEnabled, astatusStatus]);
 
   useEffect(() => {
     const initializeApp = async () => {
-      const searchParams = new URLSearchParams(window.location.search);
-      const isMock = searchParams.get('mock') === 'true';
-      const isLocalhost = window.location.hostname === 'localhost';
-
-      if (isMock || isLocalhost) {
+      if (mockModeActive) {
         console.log("🧪 Mock or local mode — skipping authentication");
         localStorage.setItem('mock', 'true');
         sessionStorage.setItem('access_token', 'test-token');
@@ -172,23 +211,35 @@ const App = () => {
       } catch (authError) {
         console.error("❌ Authentication error:", authError);
         setError('Authentication failed. Please try again.');
-        // Report auth error to Atatus
-        try {
-          atatus.notify(authError);
-        } catch (e) {
-          console.error("❌ Failed to report auth error to Atatus:", e);
-        }
+        // Report auth error to Atatus if available
+        reportToAtatus(authError);
       }
     };
 
     initializeApp();
-  }, []);
+  }, [mockModeActive]);
 
   useEffect(() => {
     if (authenticated) {
       fetchData();
     }
   }, [authenticated, currentCity, currentNOE]);
+
+  // Helper function to safely report errors to Atatus
+  const reportToAtatus = (error) => {
+    try {
+      // Only report if Atatus is initialized or explicitly enabled in dev
+      if ((astatusInitialized || astatusDevEnabled) && typeof atatus?.notify === 'function') {
+        console.log("📤 Reporting error to Atatus");
+        atatus.notify(error);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error("❌ Failed to report to Atatus:", e);
+      return false;
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -207,36 +258,111 @@ const App = () => {
       console.error('❌ Error fetching events:', err);
       setError('Failed to load events. Please try again later.');
       // Report data fetch error to Atatus
-      try {
-        atatus.notify(err);
-      } catch (e) {
-        console.error("❌ Failed to report data error to Atatus:", e);
-      }
+      reportToAtatus(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTestError = () => {
-    try {
-      console.log("🧪 Testing Atatus error reporting");
-      atatus.notify(new Error('Test Atatus Setup'));
-      console.log("📤 Error sent to Atatus");
-      alert("Test error sent to Atatus. Check Atatus dashboard.");
-    } catch (err) {
-      console.error("❌ Failed to send test error to Atatus:", err);
-      alert("Failed to send error to Atatus: " + err.message);
+  // Toggle Atatus in development mode
+  const toggleAtatusInDev = () => {
+    if (!mockModeActive) {
+      alert("This option is only available in development mode");
+      return;
+    }
+    
+    const newState = !astatusDevEnabled;
+    setAtatusDevEnabled(newState);
+    localStorage.setItem('allow_atatus_in_dev', newState.toString());
+    
+    if (newState && astatusDisabledByDev) {
+      // Re-initialize Atatus if it was previously disabled
+      try {
+        console.log("🔄 Re-initializing Atatus for development testing");
+        const astatusConfig = atatus.config('b1b3462ff17349bd90559fb62636d727', {
+          releaseStage: 'development'
+        });
+        
+        if (typeof astatusConfig.instrumentXHR === 'function') astatusConfig.instrumentXHR();
+        if (typeof astatusConfig.captureConsoleErrors === 'function') astatusConfig.captureConsoleErrors();
+        if (typeof astatusConfig.install === 'function') astatusConfig.install();
+        
+        astatusInitialized = true;
+        astatusDisabledByDev = false;
+        console.log("✅ Atatus re-initialized for development");
+        alert("Atatus has been enabled for testing. Please refresh the page for all features to work properly.");
+      } catch (err) {
+        console.error("❌ Error initializing Atatus:", err);
+        alert("Failed to initialize Atatus: " + err.message);
+      }
+    } else if (!newState) {
+      alert("Atatus has been disabled. Please refresh the page for changes to take effect.");
     }
   };
 
+  const handleTestError = () => {
+    try {
+      console.log("🧪 Starting Atatus error test");
+  
+      if (mockModeActive && !astatusDevEnabled) {
+        console.log("⚠️ Atatus testing unavailable in dev mode without enabling");
+        alert("Atatus is disabled in development mode. Toggle 'Enable Atatus in Dev' to test.");
+        return;
+      }
+  
+      // Check if atatus is properly initialized
+      if (!astatusInitialized || typeof atatus !== 'object' || typeof atatus.notify !== 'function') {
+        const initError = new Error('Atatus is not initialized correctly');
+        console.error("❌", initError);
+        throw initError;
+      }
+  
+      // Create a test error and report it to Atatus
+      const testError = new Error('Test Atatus Setup');
+      const reported = reportToAtatus(testError);
+      
+      if (reported) {
+        console.log("📤 Test error sent to Atatus");
+        setTimeout(() => alert("Test error sent to Atatus. Check Atatus dashboard."), 100);
+      } else {
+        throw new Error("Failed to send test error to Atatus");
+      }
+    } catch (err) {
+      console.error("❌ Failed in handleTestError:", err);
+      reportToAtatus(err);
+  
+      // Use fallback alert
+      try {
+        alert("Error sending test error to Atatus: " + err.message);
+      } catch (e) {
+        console.warn("⚠️ Also failed to show fallback alert:", e);
+      }
+    }
+  };
+  
   return (
     <div className="App">
       <h1>Meet App</h1>
 
-      {/* Button to test Atatus error reporting */}
-      <button onClick={handleTestError}>
-        Test Atatus Setup
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
+        {/* Button to test Atatus error reporting */}
+        <button onClick={handleTestError}>
+          Test Atatus
+        </button>
+        
+        {/* Only show toggle button in development mode */}
+        {mockModeActive && (
+          <button 
+            onClick={toggleAtatusInDev}
+            style={{ 
+              backgroundColor: astatusDevEnabled ? '#e77' : '#7d7',
+              color: 'white' 
+            }}
+          >
+            {astatusDevEnabled ? 'Disable' : 'Enable'} Atatus in Dev
+          </button>
+        )}
+      </div>
       
       <div style={{ fontSize: '10px', color: 'gray', marginTop: '5px' }}>
         Atatus Status: {astatusStatus}
@@ -248,7 +374,7 @@ const App = () => {
             🟢 Authenticated
           </div>
         )}
-        {isMockMode && (
+        {mockModeActive && (
           <div style={{ color: 'green' }} data-testid="mock-status">
             ✅ Mock Mode Enabled
           </div>
