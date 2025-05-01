@@ -99,6 +99,7 @@ import React, { useEffect, useState } from 'react';
 import CitySearch from './components/CitySearch';
 import EventList from './components/EventList';
 import NumberOfEvents from './components/NumberOfEvents';
+
 import {
   extractLocations,
   getEvents,
@@ -167,6 +168,7 @@ const App = () => {
   const [astatusStatus, setAtatusStatus] = useState('Unknown');
   const [astatusDevEnabled, setAtatusDevEnabled] = useState(allowAtatusInDev);
   const [infoAlert, setInfoAlert] = useState("");
+  const [errorAlert, setErrorAlert] = useState("");
 
   // Check if we're in mock mode using the utility functions
   const mockModeActive = isLocalMode() || isMockMode();
@@ -290,6 +292,7 @@ const App = () => {
     } catch (err) {
       console.error('❌ Error fetching events:', err);
       setError('Failed to load events. Please try again later.');
+      setErrorAlert('Failed to load events. Please try again later.');
       // Report data fetch error to Atatus
       reportToAtatus(err);
     } finally {
@@ -425,7 +428,8 @@ const App = () => {
   
       {/* Info alert message */}
       <div className="alerts-container">
-        {infoAlert.length > 0 && <InfoAlert text={infoAlert} />}
+          {infoAlert && <InfoAlert text={infoAlert} />}
+          {errorAlert && <errorAlert text={errorAlert} />}
       </div>
   
       {error && (
