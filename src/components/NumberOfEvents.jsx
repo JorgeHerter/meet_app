@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ErrorAlert } from './Alert';
 
 const NumberOfEvents = ({ currentNOE, setCurrentNOE }) => {
   const [error, setError] = useState('');
@@ -6,7 +7,6 @@ const NumberOfEvents = ({ currentNOE, setCurrentNOE }) => {
   const handleInputChange = (event) => {
     let value = parseInt(event.target.value, 10);
 
-    // Validate the input value
     if (isNaN(value) || value < 1) {
       value = 1;
       setError('Please enter a number between 1 and 50');
@@ -14,10 +14,10 @@ const NumberOfEvents = ({ currentNOE, setCurrentNOE }) => {
       value = 50;
       setError('Please enter a number between 1 and 50');
     } else {
-      setError(''); // Clear error if value is valid
+      setError('');
     }
 
-    setCurrentNOE(value); // Update the parent state
+    setCurrentNOE(value);
   };
 
   return (
@@ -35,7 +35,7 @@ const NumberOfEvents = ({ currentNOE, setCurrentNOE }) => {
         role="spinbutton"
         aria-label="Number of events"
       />
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <ErrorAlert text={error} />}
     </div>
   );
 };

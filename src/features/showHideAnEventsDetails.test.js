@@ -25,6 +25,8 @@ jest.mock('../api', () => ({
   getEvents: jest.fn(() => Promise.resolve(mockEventsData)),
   isAuthenticated: jest.fn().mockResolvedValue(true),
   getAuthURL: jest.fn(() => Promise.resolve('https://example.com')),
+  isLocalMode: jest.fn(() => true), // 
+  isMockMode: jest.fn(() => true),  
 }));
 
 // JSDOM mocks

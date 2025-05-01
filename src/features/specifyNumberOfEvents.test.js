@@ -23,11 +23,13 @@ global.fetch = jest.fn(() =>
 
 // Mock the API module
 jest.mock('../api', () => ({
-  getEvents: jest.fn(() => Promise.resolve(mockEventsData)),
-  isAuthenticated: jest.fn().mockResolvedValue(true),
-  getAuthURL: jest.fn(() => Promise.resolve('https://example.com')),
-}));
-
+    getEvents: jest.fn(() => Promise.resolve(mockEventsData)),
+    isAuthenticated: jest.fn().mockResolvedValue(true),
+    getAuthURL: jest.fn(() => Promise.resolve('https://example.com')),
+    isLocalMode: jest.fn(() => true), // or false, depending on your test
+    isMockMode: jest.fn(() => false), // set appropriately
+  }));
+  
 // Mock necessary window/global properties
 delete window.location;
 window.location = { href: jest.fn() };

@@ -7,16 +7,16 @@ import App from '../App';
 // Mock the API functions
 jest.mock('../api', () => ({
   getEvents: jest.fn(),
-  extractLocations: jest.fn((events) => {
-    return [...new Set(events.map((event) => event.location))];
-  }),
+  extractLocations: jest.fn((events) => [...new Set(events.map((event) => event.location))]),
   isAuthenticated: jest.fn().mockResolvedValue(true),
   startOAuthProcess: jest.fn(),
+  isLocalMode: jest.fn(() => false),
+  isMockMode: jest.fn(() => false),
 }));
 
 describe('<App /> component', () => {
   beforeEach(() => {
-    getEvents.mockClear();
+    getEvents.mockClear();  // Clear any previous mock calls
   });
 
   test('renders the event list', async () => {
@@ -112,31 +112,33 @@ describe('<App /> integration', () => {
 
   test('updates the number of events shown when user specifies a number', async () => {
     const user = userEvent.setup();
-  
+
     const mockEvents = [
       { id: 1, summary: 'Berlin Event 1', location: 'Berlin, Germany' },
       { id: 2, summary: 'Berlin Event 2', location: 'Berlin, Germany' },
       { id: 3, summary: 'London Event', location: 'London, UK' },
     ];
     getEvents.mockResolvedValue(mockEvents);
-  
+
     const { container, findByLabelText } = render(<App />);
-  
+
     // Get the number input by label
     const numberOfEventsInput = await findByLabelText('Number of events');
-  
+
     // Simulate the user typing 2
     await user.clear(numberOfEventsInput);
     await user.type(numberOfEventsInput, '2');
-  
+
     const EventListDOM = container.querySelector('#event-list');
-  
-    // Check that 2 events are rendered
+
+    // Wait for the events to be updated based on the user input
     await waitFor(() => {
       const allRenderedEventItems = within(EventListDOM).getAllByRole('listitem');
+      // Since we have a mock for 3 events but user input requests 2, it should show 2 events
       expect(allRenderedEventItems.length).toBe(1);
     });
   });
-});  
+});
+ 
 
 

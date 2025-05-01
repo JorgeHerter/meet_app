@@ -3,16 +3,30 @@ import { render, within, waitFor, fireEvent, screen } from '@testing-library/rea
 import { loadFeature, defineFeature } from 'jest-cucumber';
 import App from '../App';
 
+// Mock the API calls and other necessary methods
 jest.mock('../api', () => ({
-  isAuthenticated: jest.fn().mockResolvedValue(true),
-  getEvents: jest.fn().mockResolvedValue([
-    { id: 1, summary: 'Berlin Event 1', location: 'Berlin, Germany' },
-    { id: 2, summary: 'Berlin Event 2', location: 'Berlin, Germany' },
-    { id: 3, summary: 'London Event', location: 'London, UK' }
-  ]),
-  extractLocations: jest.fn().mockReturnValue(['Berlin, Germany', 'London, UK']),
-  startOAuthProcess: jest.fn().mockResolvedValue(undefined)
-}));
+    isAuthenticated: jest.fn().mockResolvedValue(true),
+    getEvents: jest.fn().mockResolvedValue([
+      { id: 1, summary: 'Berlin Event 1', location: 'Berlin, Germany' },
+      { id: 2, summary: 'Berlin Event 2', location: 'Berlin, Germany' },
+      { id: 3, summary: 'London Event', location: 'London, UK' }
+    ]),
+    extractLocations: jest.fn().mockReturnValue(['Berlin, Germany', 'London, UK']),
+    startOAuthProcess: jest.fn().mockResolvedValue(undefined),
+    // Mocking isLocalMode and isMockMode
+    isLocalMode: jest.fn().mockReturnValue(false),  // Mock to return false (change based on your requirements)
+    isMockMode: jest.fn().mockReturnValue(true)     // Mock to return true (change based on your requirements)
+  }));
+  
+beforeEach(() => {
+  // Simulate ?mock=true in the URL
+  delete window.location;
+  window.location = new URL('http://localhost:8080/?mock=true');
+
+  // Set required storage values expected by App
+  localStorage.setItem('mock', 'true');
+  sessionStorage.setItem('access_token', 'test-token');
+});
 
 const feature = loadFeature(require.resolve('./filterEventsByCity.feature'));
 
@@ -26,6 +40,7 @@ defineFeature(feature, test => {
     });
 
     when('the user opens the app', async () => {
+      // Ensure App renders properly without errors
       AppComponent = render(<App />);
       await waitFor(() => expect(AppComponent.queryByTestId('event-list')).toBeInTheDocument());
       EventListDOM = AppComponent.container.querySelector('#event-list');
@@ -70,21 +85,20 @@ defineFeature(feature, test => {
     });
 
     and('the list of suggested cities is showing', async () => {
-        const input = await AppComponent.findByTestId('city-input');
-      
-        fireEvent.focus(input); // Triggers setShowSuggestions(true)
-        fireEvent.change(input, { target: { value: 'Berlin' } }); // Updates query + shows matching cities
-      
-        // Wait until the suggestions list is rendered
-        await waitFor(() => {
-          const suggestionsList = AppComponent.getByTestId('suggestions-list');
-          expect(suggestionsList).toBeInTheDocument();
-      
-          const items = within(suggestionsList).getAllByTestId('city-suggestion-item');
-          expect(items.length).toBeGreaterThan(0);
-        });
+      const input = await AppComponent.findByTestId('city-input');
+
+      fireEvent.focus(input); // Triggers setShowSuggestions(true)
+      fireEvent.change(input, { target: { value: 'Berlin' } }); // Updates query + shows matching cities
+
+      // Wait until the suggestions list is rendered
+      await waitFor(() => {
+        const suggestionsList = AppComponent.getByTestId('suggestions-list');
+        expect(suggestionsList).toBeInTheDocument();
+
+        const items = within(suggestionsList).getAllByTestId('city-suggestion-item');
+        expect(items.length).toBeGreaterThan(0);
       });
-      
+    });
 
     when(/^the user selects a city \(e\.g\., "(.*)"\) from the list$/, async (cityName) => {
       const fullCity = `${cityName}, Germany`;
@@ -115,6 +129,7 @@ defineFeature(feature, test => {
     });
   });
 });
+
 
 
 

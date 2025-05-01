@@ -166,7 +166,10 @@ jest.mock('../api', () => ({
   extractLocations: jest.fn((events) => [...new Set(events.map(e => e.location))]),
   isAuthenticated: jest.fn().mockResolvedValue(true),
   startOAuthProcess: jest.fn(),
+  isLocalMode: jest.fn().mockReturnValue(true),  // Mocked function
+  isMockMode: jest.fn().mockReturnValue(false), // Mocked function
 }));
+
 
 // -------------------------
 // 🔹 Utility Component for State-based Test

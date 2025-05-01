@@ -84,7 +84,7 @@ export default CitySearch;*/
 
 import React, { useState, useEffect } from 'react';
 
-const CitySearch = ({ allLocations, setCurrentCity }) => {
+const CitySearch = ({ allLocations, setCurrentCity, setInfoAlert }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -96,22 +96,30 @@ const CitySearch = ({ allLocations, setCurrentCity }) => {
   const handleInputChanged = (event) => {
     const value = event.target.value;
     setQuery(value);
-
+  
     if (!allLocations) return;
-
+  
     const filteredLocations = allLocations.filter((location) => {
       const locationStr = typeof location === 'string' ? location : location.label;
       return locationStr.toUpperCase().includes(value.toUpperCase());
     });
-
+  
     setSuggestions(filteredLocations);
+  
+    const infoText = filteredLocations.length === 0
+      ? "We can not find the city you are looking for. Please try another city"
+      : "";
+  
+    setInfoAlert(infoText);
   };
-
+  
   const handleItemClicked = (event) => {
     const value = String(event.target.textContent).trim();
+    console.log("Clicked on city:", value);
     setQuery(value);
     setShowSuggestions(false);
     setCurrentCity(value);
+    setInfoAlert(""); // Clear the info alert when a city is selected
   };
 
   return (

@@ -109,6 +109,7 @@ import {
 } from './api';
 import './App.css';
 import * as atatus from 'atatus-spa';
+import { InfoAlert } from './components/Alert';
 
 // Global variable to track if Atatus was initialized successfully
 let astatusInitialized = false;
@@ -165,6 +166,7 @@ const App = () => {
   const [authenticated, setAuthenticated] = useState(false);
   const [astatusStatus, setAtatusStatus] = useState('Unknown');
   const [astatusDevEnabled, setAtatusDevEnabled] = useState(allowAtatusInDev);
+  const [infoAlert, setInfoAlert] = useState("");
 
   // Check if we're in mock mode using the utility functions
   const mockModeActive = isLocalMode() || isMockMode();
@@ -231,7 +233,38 @@ const App = () => {
       // Only report if Atatus is initialized or explicitly enabled in dev
       if ((astatusInitialized || astatusDevEnabled) && typeof atatus?.notify === 'function') {
         console.log("📤 Reporting error to Atatus");
-        atatus.notify(error);
+        
+        // Ensure error is properly formatted
+        let errorToReport = error;
+        
+        // If error is not an Error object, convert it
+        if (!(error instanceof Error)) {
+          if (typeof error === 'string') {
+            errorToReport = new Error(error);
+          } else {
+            try {
+              const errorMsg = JSON.stringify(error) || 'Unknown error object';
+              errorToReport = new Error(errorMsg);
+            } catch (e) {
+              errorToReport = new Error('Non-serializable error object');
+            }
+          }
+        }
+        
+        // Add metadata to help with debugging and email notifications
+        const metadata = {
+          severity: 'error',
+          environment: inDevMode ? 'development' : 'production',
+          notifyEmail: true, // Explicitly request email notification
+          timestamp: new Date().toISOString(),
+          component: 'Meet App'
+        };
+        
+        // Use the proper Atatus API call with metadata
+        atatus.notify(errorToReport, {
+          metadata: metadata
+        });
+        
         return true;
       }
       return false;
@@ -264,7 +297,7 @@ const App = () => {
     }
   };
 
-  // Toggle Atatus in development mode
+  // Toggle Atatus in development mode - keep the function for potential programmatic use
   const toggleAtatusInDev = () => {
     if (!mockModeActive) {
       alert("This option is only available in development mode");
@@ -306,7 +339,7 @@ const App = () => {
   
       if (mockModeActive && !astatusDevEnabled) {
         console.log("⚠️ Atatus testing unavailable in dev mode without enabling");
-        alert("Atatus is disabled in development mode. Toggle 'Enable Atatus in Dev' to test.");
+        alert("Atatus is disabled in development mode. Please enable it first to test.");
         return;
       }
   
@@ -317,13 +350,35 @@ const App = () => {
         throw initError;
       }
   
-      // Create a test error and report it to Atatus
-      const testError = new Error('Test Atatus Setup');
-      const reported = reportToAtatus(testError);
+      // Create a more detailed test error to trigger email notifications
+      const testError = new Error('Meet App Test Error - Email Notification Check');
+      testError.stack = `Error: Test stack trace generated at ${new Date().toISOString()}
+        at handleTestError (App.js:234:23)
+        at HTMLUnknownElement.callCallback (react-dom.development.js:4164:14)
+        at Object.invokeGuardedCallbackDev (react-dom.development.js:4213:16)
+        at invokeGuardedCallback (react-dom.development.js:4277:31)
+        at invokeGuardedCallbackAndCatchFirstError (react-dom.development.js:4291:25)`;
+      
+      // Add some context to the error
+      testError.metadata = {
+        component: 'Test Button',
+        action: 'Manual Test',
+        user: 'Test User',
+        timestamp: new Date().toISOString(),
+        emailRequired: true
+      };
+      
+      // Directly use atatus.notify with options to ensure email delivery
+      const reported = typeof atatus.notify === 'function' ? 
+        atatus.notify(testError, { 
+          metadata: testError.metadata,
+          severity: 'error',
+          notifyEmail: true 
+        }) : false;
       
       if (reported) {
         console.log("📤 Test error sent to Atatus");
-        setTimeout(() => alert("Test error sent to Atatus. Check Atatus dashboard."), 100);
+        setTimeout(() => alert("Test error sent to Atatus with email notification flag. Check your email and Atatus dashboard."), 100);
       } else {
         throw new Error("Failed to send test error to Atatus");
       }
@@ -343,31 +398,18 @@ const App = () => {
   return (
     <div className="App">
       <h1>Meet App</h1>
-
+  
       <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
         {/* Button to test Atatus error reporting */}
         <button onClick={handleTestError}>
           Test Atatus
         </button>
-        
-        {/* Only show toggle button in development mode */}
-        {mockModeActive && (
-          <button 
-            onClick={toggleAtatusInDev}
-            style={{ 
-              backgroundColor: astatusDevEnabled ? '#e77' : '#7d7',
-              color: 'white' 
-            }}
-          >
-            {astatusDevEnabled ? 'Disable' : 'Enable'} Atatus in Dev
-          </button>
-        )}
       </div>
-      
+  
       <div style={{ fontSize: '10px', color: 'gray', marginTop: '5px' }}>
         Atatus Status: {astatusStatus}
       </div>
-
+  
       <div style={{ marginBottom: '1rem' }}>
         {authenticated && (
           <div data-testid="auth-status" style={{ color: 'green' }}>
@@ -380,13 +422,18 @@ const App = () => {
           </div>
         )}
       </div>
-
+  
+      {/* Info alert message */}
+      <div className="alerts-container">
+        {infoAlert.length > 0 && <InfoAlert text={infoAlert} />}
+      </div>
+  
       {error && (
         <div className="error" data-testid="error">
           {error}
         </div>
       )}
-
+  
       {loading ? (
         <div data-testid="loading">Loading events...</div>
       ) : events.length === 0 ? (
@@ -396,6 +443,7 @@ const App = () => {
           <CitySearch
             allLocations={allLocations}
             setCurrentCity={setCurrentCity}
+            setInfoAlert={setInfoAlert}
           />
           <NumberOfEvents
             currentNOE={currentNOE}
@@ -404,23 +452,13 @@ const App = () => {
           <EventList events={events} />
         </>
       )}
-      
+  
       <div style={{ fontSize: '10px', color: 'gray', marginTop: '20px' }}>
         Environment: {process.env.NODE_ENV || 'not set'}
       </div>
     </div>
   );
 };
-
-export default App;
-
-
-
-
   
 
-
-
-
-
-
+export default App;

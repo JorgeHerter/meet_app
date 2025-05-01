@@ -8,13 +8,27 @@ import { getEvents } from '../api';
 
 // Mock the API functions
 jest.mock('../api', () => ({
-  getEvents: jest.fn(),
-  extractLocations: jest.fn((events) => {
-    return [...new Set(events.map((event) => event.location))];
-  }),
+  getEvents: jest.fn().mockResolvedValue([
+    { id: 1, summary: 'Berlin Event 1', location: 'Berlin, Germany' },
+    { id: 2, summary: 'Berlin Event 2', location: 'Berlin, Germany' },
+    { id: 3, summary: 'London Event', location: 'London, UK' }
+  ]),
+  extractLocations: jest.fn().mockReturnValue(['Berlin, Germany', 'London, UK']),
   isAuthenticated: jest.fn().mockResolvedValue(true),
-  startOAuthProcess: jest.fn()
+  startOAuthProcess: jest.fn().mockResolvedValue(undefined),
+  isLocalMode: jest.fn().mockReturnValue(true),  // Mocking the function
+  isMockMode: jest.fn().mockReturnValue(true)   // Mocking the function
 }));
+
+beforeEach(() => {
+  // Simulate ?mock=true in the URL
+  delete window.location;
+  window.location = new URL('http://localhost:8080/?mock=true');
+  
+  // Set required storage values expected by App
+  localStorage.setItem('mock', 'true');
+  sessionStorage.setItem('access_token', 'test-token');
+});
 
 
 describe('<Event /> component', () => {
