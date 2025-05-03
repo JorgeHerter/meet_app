@@ -282,9 +282,11 @@ const App = () => {
       //console.log("📡 Fetching events...");
       const allEvents = await getEvents();
       const filteredEvents =
-        currentCity === 'See all cities'
-          ? allEvents
-          : allEvents.filter((event) => event.location === currentCity);
+      currentCity === 'See all cities'
+        ? allEvents
+        : allEvents.filter(
+        (event) => event.location.toLowerCase() === currentCity.toLowerCase()
+      );
 
       setEvents(filteredEvents.slice(0, currentNOE));
       setAllLocations(extractLocations(allEvents));
