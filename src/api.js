@@ -437,31 +437,31 @@ const extractLocations = (events) => {
 const removeQueryParams = () => {
   const newUrl = window.location.origin + window.location.pathname;
   window.history.pushState({}, document.title, newUrl);
-  console.log('Cleaned URL:', newUrl);
+  //console.log('Cleaned URL:', newUrl);
 };
 
 // Auth functions
 const logout = async () => {
   sessionStorage.removeItem(AUTH_STORAGE_KEY);
   sessionStorage.removeItem(AUTH_EXPIRY_KEY);
-  console.log('Logged out successfully');
+  //console.log('Logged out successfully');
 };
 
 const startOAuthProcess = async () => {
   // Skip OAuth if in local or mock mode
   if (isLocalMode()) {
-    console.log('🛠 LOCAL MODE: Skipping OAuth process');
+    //console.log('🛠 LOCAL MODE: Skipping OAuth process');
     return;
   }
   
   if (isMockMode()) {
-    console.log('✅ MOCK MODE: Skipping OAuth process');
+    //console.log('✅ MOCK MODE: Skipping OAuth process');
     return;
   }
   
   try {
     const authUrl = await getAuthURL();
-    console.log('Redirecting to OAuth:', authUrl);
+    //console.log('Redirecting to OAuth:', authUrl);
     window.location.assign(authUrl);
   } catch (error) {
     console.error('OAuth process failed:', error);
@@ -498,12 +498,12 @@ const checkToken = async (token) => {
 const isAuthenticated = async () => {
   // Skip authentication if in local or mock mode
   if (isLocalMode()) {
-    console.log('🛠 LOCAL MODE: Assuming authenticated');
+    //console.log('🛠 LOCAL MODE: Assuming authenticated');
     return true;
   }
   
   if (isMockMode()) {
-    console.log('✅ MOCK MODE: Assuming authenticated');
+    //console.log('✅ MOCK MODE: Assuming authenticated');
     return true;
   }
 
@@ -511,14 +511,14 @@ const isAuthenticated = async () => {
   const expiry = parseInt(sessionStorage.getItem(AUTH_EXPIRY_KEY), 10);
 
   if (!token || (expiry && Date.now() > expiry)) {
-    console.log('Token missing or expired');
+    //console.log('Token missing or expired');
     await logout();
     return false;
   }
 
   const valid = await checkToken(token);
   if (!valid) {
-    console.log('Token invalid');
+    //console.log('Token invalid');
     await logout();
     return false;
   }
@@ -530,7 +530,7 @@ const isAuthenticated = async () => {
 const getAccessToken = async (code) => {
   // Skip token fetch if in local or mock mode
   if (isLocalMode() || isMockMode()) {
-    console.log(`${isLocalMode() ? '🛠 LOCAL' : '✅ MOCK'} MODE: Skipping token fetch`);
+    //console.log(`${isLocalMode() ? '🛠 LOCAL' : '✅ MOCK'} MODE: Skipping token fetch`);
     return "mock-token";
   }
   
@@ -549,7 +549,7 @@ const getAccessToken = async (code) => {
 
     return access_token;
   } catch (error) {
-    console.error('Error getting access token:', error);
+    //console.error('Error getting access token:', error);
     throw error;
   }
 };
@@ -558,12 +558,12 @@ const getAccessToken = async (code) => {
 const ensureAuthenticated = async () => {
   // Skip authentication if in local or mock mode
   if (isLocalMode()) {
-    console.log('🛠 LOCAL MODE: Skipping authentication');
+    //console.log('🛠 LOCAL MODE: Skipping authentication');
     return;
   }
   
   if (isMockMode()) {
-    console.log('✅ MOCK MODE: Skipping authentication');
+    //console.log('✅ MOCK MODE: Skipping authentication');
     return;
   }
 
@@ -576,17 +576,17 @@ const ensureAuthenticated = async () => {
 
 // Fetch events from API or mock
 const getEvents = async () => {
-  console.log('Getting events...');
+  //console.log('Getting events...');
   NProgress.start();
 
   if (isLocalMode()) {
-    console.log('🛠 LOCAL MODE: Returning mock data');
+    //console.log('🛠 LOCAL MODE: Returning mock data');
     NProgress.done();
     return mockData;
   }
   
   if (isMockMode()) {
-    console.log('✅ MOCK MODE: Returning mock data');
+    //console.log('✅ MOCK MODE: Returning mock data');
     NProgress.done();
     return mockData;
   }
@@ -598,7 +598,7 @@ const getEvents = async () => {
 
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
-        console.log('Token expired, re-authenticating...');
+        //console.log('Token expired, re-authenticating...');
         await logout();
         await startOAuthProcess();
         throw new Error('Authentication expired');
@@ -624,11 +624,11 @@ const logoutUser = async () => {
 
 // Initialize app on load
 const initializeApp = async () => {
-  console.log('Initializing app...');
+  //console.log('Initializing app...');
   
   // Skip OAuth handling if in local or mock mode
   if (isLocalMode() || isMockMode()) {
-    console.log(`${isLocalMode() ? '🛠 LOCAL' : '✅ MOCK'} MODE: Skipping OAuth initialization`);
+    //console.log(`${isLocalMode() ? '🛠 LOCAL' : '✅ MOCK'} MODE: Skipping OAuth initialization`);
     // Just clean URL if code parameter exists
     if (new URLSearchParams(window.location.search).has('code')) {
       removeQueryParams();
@@ -651,7 +651,7 @@ const initializeApp = async () => {
     if (!authenticated) {
       await startOAuthProcess();
     } else {
-      console.log('Already authenticated');
+      //console.log('Already authenticated');
     }
   }
 };

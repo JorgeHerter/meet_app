@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test": "jest"  
+    "test": "jest"
   },
   "dependencies": {
     "@playwright/test": "^1.52.0",
@@ -17,7 +17,13 @@
     "puppeteer-core": "^24.6.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "vite-plugin-pwa": "^1.0.0",
+    "workbox-core": "^7.3.0",
+    "workbox-expiration": "^7.3.0",
+    "workbox-precaching": "^7.3.0",
+    "workbox-routing": "^7.3.0",
+    "workbox-strategies": "^7.3.0"
   },
   "devDependencies": {
     "@babel/plugin-proposal-decorators": "^7.25.9",
@@ -52,4 +58,3 @@
     "whatwg-fetch": "^3.6.20"
   }
 }
-

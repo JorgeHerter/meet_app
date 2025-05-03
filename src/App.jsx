@@ -110,7 +110,7 @@ import {
 } from './api';
 import './App.css';
 import * as atatus from 'atatus-spa';
-import { InfoAlert } from './components/Alert';
+import { InfoAlert, ErrorAlert } from './components/Alert';
 
 // Global variable to track if Atatus was initialized successfully
 let astatusInitialized = false;
@@ -125,7 +125,7 @@ const inDevMode = window.location.hostname === 'localhost' ||
 try {
   // Skip Atatus in development mode unless explicitly enabled
   if (!inDevMode || allowAtatusInDev) {
-    console.log(`🔄 Initializing Atatus... (${inDevMode ? 'DEV mode with testing enabled' : 'PRODUCTION mode'})`);
+    //console.log(`🔄 Initializing Atatus... (${inDevMode ? 'DEV mode with testing enabled' : 'PRODUCTION mode'})`);
     
     // Initialize Atatus properly
     const astatusConfig = atatus.config('b1b3462ff17349bd90559fb62636d727', {
@@ -147,9 +147,9 @@ try {
     }
     
     astatusInitialized = true;
-    console.log("✅ Atatus initialized successfully");
+    //console.log("✅ Atatus initialized successfully");
   } else {
-    console.log("🛠 Dev mode - Atatus monitoring disabled by default");
+    //console.log("🛠 Dev mode - Atatus monitoring disabled by default");
     astatusDisabledByDev = true;
   }
 } catch (err) {
@@ -186,7 +186,7 @@ const App = () => {
         setAtatusStatus(astatusAvailable ? 'Available but not initialized' : 'Not available');
       }
       
-      console.log("Atatus status:", astatusStatus);
+      //console.log("Atatus status:", astatusStatus);
     } catch (err) {
       console.error("Error checking Atatus status:", err);
       setAtatusStatus('Error');
@@ -196,7 +196,7 @@ const App = () => {
   useEffect(() => {
     const initializeApp = async () => {
       if (mockModeActive) {
-        console.log("🧪 Mock or local mode — skipping authentication");
+        //console.log("🧪 Mock or local mode — skipping authentication");
         localStorage.setItem('mock', 'true');
         sessionStorage.setItem('access_token', 'test-token');
         setAuthenticated(true);
@@ -206,10 +206,10 @@ const App = () => {
       try {
         const isAuth = await isAuthenticated();
         if (!isAuth) {
-          console.log("🔐 User not authenticated, starting OAuth process...");
+          //console.log("🔐 User not authenticated, starting OAuth process...");
           await startOAuthProcess();
         } else {
-          console.log("✅ User authenticated");
+          //console.log("✅ User authenticated");
           setAuthenticated(true);
         }
       } catch (authError) {
@@ -234,7 +234,7 @@ const App = () => {
     try {
       // Only report if Atatus is initialized or explicitly enabled in dev
       if ((astatusInitialized || astatusDevEnabled) && typeof atatus?.notify === 'function') {
-        console.log("📤 Reporting error to Atatus");
+        //console.log("📤 Reporting error to Atatus");
         
         // Ensure error is properly formatted
         let errorToReport = error;
@@ -279,7 +279,7 @@ const App = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log("📡 Fetching events...");
+      //console.log("📡 Fetching events...");
       const allEvents = await getEvents();
       const filteredEvents =
         currentCity === 'See all cities'
@@ -288,9 +288,9 @@ const App = () => {
 
       setEvents(filteredEvents.slice(0, currentNOE));
       setAllLocations(extractLocations(allEvents));
-      console.log("📦 Events loaded:", filteredEvents.length);
+      //console.log("📦 Events loaded:", filteredEvents.length);
     } catch (err) {
-      console.error('❌ Error fetching events:', err);
+      //console.error('❌ Error fetching events:', err);
       setError('Failed to load events. Please try again later.');
       setErrorAlert('Failed to load events. Please try again later.');
       // Report data fetch error to Atatus
@@ -314,7 +314,7 @@ const App = () => {
     if (newState && astatusDisabledByDev) {
       // Re-initialize Atatus if it was previously disabled
       try {
-        console.log("🔄 Re-initializing Atatus for development testing");
+        //console.log("🔄 Re-initializing Atatus for development testing");
         const astatusConfig = atatus.config('b1b3462ff17349bd90559fb62636d727', {
           releaseStage: 'development'
         });
@@ -325,10 +325,10 @@ const App = () => {
         
         astatusInitialized = true;
         astatusDisabledByDev = false;
-        console.log("✅ Atatus re-initialized for development");
+        //console.log("✅ Atatus re-initialized for development");
         alert("Atatus has been enabled for testing. Please refresh the page for all features to work properly.");
       } catch (err) {
-        console.error("❌ Error initializing Atatus:", err);
+        //console.error("❌ Error initializing Atatus:", err);
         alert("Failed to initialize Atatus: " + err.message);
       }
     } else if (!newState) {
@@ -341,7 +341,7 @@ const App = () => {
       console.log("🧪 Starting Atatus error test");
   
       if (mockModeActive && !astatusDevEnabled) {
-        console.log("⚠️ Atatus testing unavailable in dev mode without enabling");
+        //console.log("⚠️ Atatus testing unavailable in dev mode without enabling");
         alert("Atatus is disabled in development mode. Please enable it first to test.");
         return;
       }
@@ -349,7 +349,7 @@ const App = () => {
       // Check if atatus is properly initialized
       if (!astatusInitialized || typeof atatus !== 'object' || typeof atatus.notify !== 'function') {
         const initError = new Error('Atatus is not initialized correctly');
-        console.error("❌", initError);
+        //console.error("❌", initError);
         throw initError;
       }
   
@@ -380,13 +380,13 @@ const App = () => {
         }) : false;
       
       if (reported) {
-        console.log("📤 Test error sent to Atatus");
+        //console.log("📤 Test error sent to Atatus");
         setTimeout(() => alert("Test error sent to Atatus with email notification flag. Check your email and Atatus dashboard."), 100);
       } else {
         throw new Error("Failed to send test error to Atatus");
       }
     } catch (err) {
-      console.error("❌ Failed in handleTestError:", err);
+      //console.error("❌ Failed in handleTestError:", err);
       reportToAtatus(err);
   
       // Use fallback alert
@@ -428,8 +428,8 @@ const App = () => {
   
       {/* Info alert message */}
       <div className="alerts-container">
-          {infoAlert && <InfoAlert text={infoAlert} />}
-          {errorAlert && <errorAlert text={errorAlert} />}
+        {infoAlert && <InfoAlert text={infoAlert} />}
+        {errorAlert && <ErrorAlert text={errorAlert} />}
       </div>
   
       {error && (
