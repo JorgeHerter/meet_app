@@ -625,27 +625,39 @@ const logoutUser = async () => {
 // Initialize app on load
 const initializeApp = async () => {
   //console.log('Initializing app...');
-  
+
   // Skip OAuth handling if in local or mock mode
   if (isLocalMode() || isMockMode()) {
     //console.log(`${isLocalMode() ? '🛠 LOCAL' : '✅ MOCK'} MODE: Skipping OAuth initialization`);
-    // Just clean URL if code parameter exists
     if (new URLSearchParams(window.location.search).has('code')) {
       removeQueryParams();
     }
     return;
   }
-  
-  // Handle OAuth redirect if 'code' exists in the query parameters
-  if (new URLSearchParams(window.location.search).has('code')) {
+
+  // Check for OAuth code in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get('code');
+
+  if (code && !sessionStorage.getItem('codeUsed')) {
     try {
-      const code = new URLSearchParams(window.location.search).get('code');
+      // Prevent re-using code
+      sessionStorage.setItem('codeUsed', 'true');
+
+      // Exchange code for token
       await getAccessToken(code);
-      removeQueryParams();
-      console.log('OAuth redirect handled successfully');
+
+      // Clean the URL without reloading the page
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      console.log('✅ OAuth code handled and URL cleaned');
     } catch (err) {
-      console.error('OAuth redirect failed:', err);
+      console.error('❌ OAuth redirect failed:', err);
     }
+  } else if (code && sessionStorage.getItem('codeUsed')) {
+    // Code already used — just clean up the URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+    console.log('⚠️ OAuth code was already used — skipping exchange');
   } else {
     const authenticated = await isAuthenticated();
     if (!authenticated) {
