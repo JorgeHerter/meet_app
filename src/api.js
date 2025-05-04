@@ -429,8 +429,12 @@ const isMockMode = () => {
 
 // Utility: Extract unique locations
 const extractLocations = (events) => {
-  const locations = events.map((event) => event.location);
-  return [...new Set(locations)];
+  // Map through events, extract the location, and filter out null, undefined, and empty locations
+  const locations = events
+    .map((event) => event.location)  // Extract location from each event
+    .filter((location) => location && location.trim() !== '');  // Remove null, undefined, and empty strings
+
+  return [...new Set(locations)];  // Remove duplicates
 };
 
 // Utility: Clean URL after OAuth
@@ -607,6 +611,7 @@ const getEvents = async () => {
     }
 
     const { events } = await res.json();
+    console.log(events); 
     NProgress.done();
     return events;
   } catch (error) {
