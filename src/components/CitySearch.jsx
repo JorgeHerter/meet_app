@@ -158,6 +158,95 @@ const CitySearch = ({ allLocations, setCurrentCity, setInfoAlert }) => {
 };
 
 export default CitySearch;
+/*import React, { useState, useEffect } from 'react';
+
+const CitySearch = ({ allLocations, setCurrentCity, setInfoAlert }) => {
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+
+  useEffect(() => {
+    setSuggestions(allLocations);
+  }, [allLocations]);
+
+  const handleInputChanged = (event) => {
+    const value = event.target.value;
+    setQuery(value);
+    
+    // Improved suggestion filtering
+    let filteredSuggestions = [];
+    
+    if (value.trim() === '') {
+      // If empty, show all locations
+      filteredSuggestions = allLocations;
+    } else {
+      // Case-insensitive partial matching
+      const inputValue = value.trim().toLowerCase();
+      filteredSuggestions = allLocations.filter((location) => {
+        return location.toLowerCase().includes(inputValue);
+      });
+    }
+    
+    // Always add "See all cities" option
+    if (!filteredSuggestions.includes('See all cities')) {
+      filteredSuggestions.unshift('See all cities');
+    }
+    
+    setSuggestions(filteredSuggestions);
+    
+    // Show suggestions when typing
+    setShowSuggestions(true);
+    
+    // Show info alert if no matches found
+    if (filteredSuggestions.length === 1 && value.trim() !== '') {
+      setInfoAlert('No cities match your search. Try a different search term.');
+    } else {
+      setInfoAlert('');
+    }
+  };
+
+  const handleItemClicked = (suggestion) => {
+    setQuery(suggestion);
+    setShowSuggestions(false);
+    setCurrentCity(suggestion);
+    setInfoAlert('');
+    
+    // Debugging log
+    console.log(`Selected city: ${suggestion}`);
+  };
+
+  return (
+    <div className="CitySearch">
+      <label htmlFor="city-search">Search for a city: </label>
+      <input
+        type="text"
+        id="city-search"
+        className="city"
+        value={query}
+        onChange={handleInputChanged}
+        onFocus={() => setShowSuggestions(true)}
+        placeholder="Search for a city"
+        data-testid="city-search-input"
+      />
+      <ul 
+        className={`suggestions ${showSuggestions ? 'showSuggestions' : 'hideSuggestions'}`}
+        data-testid="suggestions"
+      >
+        {suggestions.map((suggestion) => (
+          <li 
+            key={suggestion}
+            onClick={() => handleItemClicked(suggestion)}
+            data-testid={`suggestion-${suggestion.replace(/\s+/g, '-').toLowerCase()}`}
+          >
+            {suggestion}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default CitySearch;*/
 
 
 

@@ -99,15 +99,7 @@ import React, { useEffect, useState } from 'react';
 import CitySearch from './components/CitySearch';
 import EventList from './components/EventList';
 import NumberOfEvents from './components/NumberOfEvents';
-
-import {
-  extractLocations,
-  getEvents,
-  isAuthenticated,
-  startOAuthProcess,
-  isLocalMode,
-  isMockMode
-} from './api';
+import { extractLocations, getEvents, isAuthenticated, startOAuthProcess, isLocalMode, isMockMode } from './api';
 import './App.css';
 import { InfoAlert, ErrorAlert } from './components/Alert';
 
@@ -154,32 +146,7 @@ const App = () => {
   const [infoAlert, setInfoAlert] = useState("");
   const [errorAlert, setErrorAlert] = useState("");
 
-  // ======= Atatus Dev State (Disabled) =======
-  /*
-  const [astatusDevEnabled, setAtatusDevEnabled] = useState(allowAtatusInDev);
-  const [astatusStatus, setAtatusStatus] = useState('Unknown');
-  */
-  // ===========================================
-
   const mockModeActive = isLocalMode() || isMockMode();
-
-  /*
-  useEffect(() => {
-    try {
-      const astatusAvailable = typeof atatus !== 'undefined' && typeof atatus.notify === 'function';
-      if (mockModeActive && !astatusDevEnabled) {
-        setAtatusStatus('Disabled in dev mode (can enable)');
-      } else if (astatusInitialized) {
-        setAtatusStatus(mockModeActive ? 'Enabled in dev mode' : 'Available');
-      } else {
-        setAtatusStatus(astatusAvailable ? 'Available but not initialized' : 'Not available');
-      }
-    } catch (err) {
-      console.error("Error checking Atatus status:", err);
-      setAtatusStatus('Error');
-    }
-  }, [mockModeActive, astatusDevEnabled]);
-  */
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -227,6 +194,7 @@ const App = () => {
       setEvents(filteredEvents.slice(0, currentNOE));
       setAllLocations(extractLocations(allEvents));
     } catch (err) {
+      console.error('Fetch events error:', err);
       setError('Failed to load events. Please try again later.');
       setErrorAlert('Failed to load events. Please try again later.');
       // reportToAtatus(err);
@@ -290,3 +258,138 @@ const App = () => {
 };
 
 export default App;
+
+/*import React, { useEffect, useState } from 'react';
+import CitySearch from './components/CitySearch';
+import EventList from './components/EventList';
+import NumberOfEvents from './components/NumberOfEvents';
+import { extractLocations, getEvents, isAuthenticated, startOAuthProcess, isLocalMode, isMockMode } from './api';
+import './App.css';
+import { InfoAlert, ErrorAlert } from './components/Alert';
+
+const App = () => {
+  const [events, setEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]);
+  const [currentNOE, setCurrentNOE] = useState(32);
+  const [allLocations, setAllLocations] = useState([]);
+  const [currentCity, setCurrentCity] = useState('See all cities');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [authenticated, setAuthenticated] = useState(false);
+  const [infoAlert, setInfoAlert] = useState('');
+
+  const mockModeActive = isLocalMode() || isMockMode();
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      if (mockModeActive) {
+        localStorage.setItem('mock', 'true');
+        sessionStorage.setItem('access_token', 'test-token');
+        setAuthenticated(true);
+        return;
+      }
+
+      try {
+        const isAuth = await isAuthenticated();
+        if (!isAuth) {
+          await startOAuthProcess();
+        } else {
+          setAuthenticated(true);
+        }
+      } catch (authError) {
+        console.error("Authentication error:", authError);
+        setError('Authentication failed. Please try again.');
+      }
+    };
+
+    initializeApp();
+  }, [mockModeActive]);
+
+  useEffect(() => {
+    if (authenticated) {
+      fetchAllEvents();
+    }
+  }, [authenticated]);
+
+  useEffect(() => {
+    if (allEvents.length > 0) {
+      filterEvents();
+    }
+  }, [currentCity, currentNOE, allEvents]);
+
+  const fetchAllEvents = async () => {
+    try {
+      setLoading(true);
+      const fetchedEvents = await getEvents();
+      setAllEvents(fetchedEvents);
+      setAllLocations(extractLocations(fetchedEvents));
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      setError('Failed to load events. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterEvents = (eventsToFilter = allEvents) => {
+    try {
+      if (!eventsToFilter || eventsToFilter.length === 0) {
+        setEvents([]);
+        return;
+      }
+
+      let filteredEvents = eventsToFilter;
+
+      if (currentCity !== 'See all cities') {
+        filteredEvents = eventsToFilter.filter((event) => {
+          const eventLocation = event.location?.trim().toLowerCase() || '';
+          const searchCity = currentCity.trim().toLowerCase();
+          return eventLocation.includes(searchCity) || searchCity.includes(eventLocation);
+        });
+      }
+
+      setEvents(filteredEvents.slice(0, currentNOE));
+    } catch (err) {
+      console.error("Error filtering events:", err);
+      setError('Error filtering events. Please try a different search.');
+    }
+  };
+
+  return (
+    <div className="App">
+      <h1>Meet App</h1>
+
+      <div style={{ marginBottom: '1rem' }}>
+        {authenticated && <div data-testid="auth-status" style={{ color: 'green' }}>🟢 Authenticated</div>}
+        {mockModeActive && <div style={{ color: 'green' }} data-testid="mock-status">✅ Mock Mode Enabled</div>}
+      </div>
+
+      <div className="alerts-container">
+        {infoAlert && <InfoAlert text={infoAlert} />}
+        {error && <ErrorAlert text={error} />}
+      </div>
+
+      {loading ? (
+        <div data-testid="loading">Loading events...</div>
+      ) : events.length === 0 ? (
+        <div data-testid="no-events">No events found for "{currentCity}". Try another search.</div>
+      ) : (
+        <>
+          <CitySearch
+            allLocations={allLocations.length > 0 ? allLocations : ['See all cities']}
+            setCurrentCity={setCurrentCity}
+            setInfoAlert={setInfoAlert}
+          />
+          <NumberOfEvents currentNOE={currentNOE} setCurrentNOE={setCurrentNOE} />
+          <EventList events={events} />
+        </>
+      )}
+
+      <div style={{ fontSize: '10px', color: 'gray', marginTop: '20px' }}>
+        Environment: {process.env.NODE_ENV || 'not set'}
+      </div>
+    </div>
+  );
+};
+
+export default App;*/
