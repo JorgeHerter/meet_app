@@ -5,10 +5,13 @@ import ErrorBoundary from './ErrorBoundary.jsx';
 import './index.css';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration.js';
 
-// import * as atatus from 'atatus-spa';  // Optional: Enable Atatus monitoring
+// Optional: Atatus monitoring (uncomment and configure if needed)
+// import * as atatus from 'atatus-spa';
 // atatus.config('1b1ee5665eb943e3bdb71259beabe47a').install();
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const root = ReactDOM.createRoot(document.getElementById('root'));
+
+root.render(
   <React.StrictMode>
     <ErrorBoundary>
       <App />
@@ -16,10 +19,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>
 );
 
-// Register service worker only in production
-if (process.env.NODE_ENV === 'production') {
+// ✅ Register service worker in production
+/*if (process.env.NODE_ENV === 'production') {
   serviceWorkerRegistration.register();
 } else {
-  console.log('Service Worker registration skipped in development mode');
-  serviceWorkerRegistration.unregister(); // Unregister any existing service workers
-}
+  console.log('⚠️ Service Worker registration skipped in development mode');
+  serviceWorkerRegistration.unregister(); // Clean up any existing registrations
+}*/
+
+serviceWorkerRegistration.register();
