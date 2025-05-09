@@ -156,23 +156,40 @@ const App = () => {
         setAuthenticated(true);
         return;
       }
-
+  
       try {
-        const isAuth = await isAuthenticated();
-        if (!isAuth) {
-          await startOAuthProcess();
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+  
+        if (code) {
+          const response = await fetch(`https://<your-api>.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token/${code}`);
+          const data = await response.json();
+  
+          if (data.access_token) {
+            sessionStorage.setItem('access_token', data.access_token);
+            setAuthenticated(true);
+            // Clean up the URL to prevent loops
+            window.history.replaceState({}, document.title, '/');
+          } else {
+            throw new Error('No access token in response');
+          }
         } else {
-          setAuthenticated(true);
+          const isAuth = await isAuthenticated();
+          if (!isAuth) {
+            await startOAuthProcess();
+          } else {
+            setAuthenticated(true);
+          }
         }
       } catch (authError) {
         console.error("Authentication error:", authError);
         setError('Authentication failed. Please try again.');
-        // reportToAtatus(authError);
       }
     };
-
+  
     initializeApp();
   }, [mockModeActive]);
+  
 
   useEffect(() => {
     if (authenticated) {
