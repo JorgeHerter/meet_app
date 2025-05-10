@@ -43,7 +43,7 @@ function registerValidSW(swUrl, config) {
   navigator.serviceWorker
     .register(swUrl)
     .then((registration) => {
-      console.log('✅ ServiceWorker registered with scope:', registration.scope);
+      //console.log('✅ ServiceWorker registered with scope:', registration.scope);
 
       registration.onupdatefound = () => {
         const installingWorker = registration.installing;
