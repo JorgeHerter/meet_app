@@ -162,7 +162,7 @@ const App = () => {
         const code = params.get('code');
   
         if (code) {
-          const response = await fetch(`https://<your-api>.execute-api.us-east-1.amazonaws.com/dev/api/get-access-token/${code}`);
+          const response = await fetch(`https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev/api/token/${encodeURIComponent(code)}`);
           const data = await response.json();
   
           if (data.access_token) {
