@@ -31,7 +31,7 @@ const EventGenresChart = ({ events }) => {
 
   const renderCustomizedLabel = ({ cx, cy, midAngle, outerRadius, percent, index }) => {
     const RADIAN = Math.PI / 180;
-    const radius = outerRadius * 1.1; // Adjust radius to make the circle smaller
+    const radius = outerRadius * 1.07; // Adjust radius to make the circle smaller
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
