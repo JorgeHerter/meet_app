@@ -24,17 +24,6 @@ A **serverless, progressive web application (PWA)** built with **React** that al
 - 📦 PWA support with Workbox & `vite-plugin-pwa`
 - 📉 Data visualization using [Recharts](https://recharts.org/)
 - 🌐 Responsive design and cross-browser support (incl. IE11)
-
----
-
-## 📛 Badges (optional)
-
-> Replace URLs with your actual repo/build/test/deploy links
-
-![Build Status](https://img.shields.io/github/workflow/status/yourusername/meet_app/CI)
-![Netlify](https://img.shields.io/netlify/your-netlify-id)
-![License](https://img.shields.io/github/license/yourusername/meet_app)
-
 ---
 
 ## 🛠️ Tech Stack
