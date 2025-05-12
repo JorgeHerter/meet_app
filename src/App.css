@@ -97,6 +97,7 @@ input[type="number"] {
  }
  .chart-container {
   width: 100%;
+  overflow-x: auto;
   height: 500px; /* or more */
   padding: 1rem;
   box-sizing: border-box;
