@@ -102,6 +102,8 @@ import NumberOfEvents from './components/NumberOfEvents';
 import { extractLocations, getEvents, isAuthenticated, startOAuthProcess, isLocalMode, isMockMode } from './api';
 import './App.css';
 import { InfoAlert, ErrorAlert } from './components/Alert';
+import EventGenresChart from './components/EventGenresChart';
+import CityEventsChart from './components/CityEventsChart';
 
 // ======= Atatus Monitoring (Disabled) =======
 /*
@@ -223,7 +225,7 @@ const App = () => {
   return (
     <div className="App">
       <h1>Meet App</h1>
-
+  
       <div style={{ marginBottom: '1rem' }}>
         {authenticated && (
           <div data-testid="auth-status" style={{ color: 'green' }}>
@@ -236,18 +238,18 @@ const App = () => {
           </div>
         )}
       </div>
-
+  
       <div className="alerts-container">
         {infoAlert && <InfoAlert text={infoAlert} />}
         {errorAlert && <ErrorAlert text={errorAlert} />}
       </div>
-
+  
       {error && (
         <div className="error" data-testid="error">
           {error}
         </div>
       )}
-
+  
       {loading ? (
         <div data-testid="loading">Loading events...</div>
       ) : events.length === 0 ? (
@@ -264,14 +266,18 @@ const App = () => {
             setCurrentNOE={setCurrentNOE}
           />
           <EventList events={events} />
+          <div className="charts-container">
+            <EventGenresChart events={events} />
+            <CityEventsChart events={events} allLocations={allLocations} />
+          </div>
         </>
       )}
-
+  
       <div style={{ fontSize: '10px', color: 'gray', marginTop: '20px' }}>
         Environment: {process.env.NODE_ENV || 'not set'}
       </div>
     </div>
-  );
+  );  
 };
 
 export default App;

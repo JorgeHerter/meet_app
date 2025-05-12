@@ -41,7 +41,7 @@ export function register(config) {
 
 function registerValidSW(swUrl, config) {
   navigator.serviceWorker
-    .register(swUrl)
+    .register(swUrl,)
     .then((registration) => {
       //console.log('✅ ServiceWorker registered with scope:', registration.scope);
 

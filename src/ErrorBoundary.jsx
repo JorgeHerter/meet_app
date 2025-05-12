@@ -1,15 +1,24 @@
 import React from 'react';
-import * as atatus from 'atatus-spa';
 
 class ErrorBoundary extends React.Component {
-  componentDidCatch(error, info) {
-    atatus.notify(error, {
-      severity: 'error',
-      componentStack: info.componentStack,
-    });
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
   }
 
   render() {
+    if (this.state.hasError) {
+      return <h2>Something went wrong.</h2>;
+    }
+
     return this.props.children;
   }
 }
