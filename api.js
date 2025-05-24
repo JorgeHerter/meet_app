@@ -423,10 +423,12 @@ const isLocalMode = () => {
 
 // Utility: Check if in mock mode
 const isMockMode = () => {
-  const isDev = window.location.hostname === 'localhost' || import.meta.env.MODE === 'development';
+  const isProd = import.meta.env.MODE === 'production';
+  
+  // ✅ Always return false in production — no mock mode allowed
+  if (isProd) return false;
 
-  if (!isDev) return false; // 🔒 Force live data in production
-
+  // 👇 Otherwise allow mock mode via URL or localStorage
   return (
     window.location.search.includes('mock=true') || 
     localStorage.getItem('mock') === 'true'
