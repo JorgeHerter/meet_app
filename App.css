@@ -1,0 +1,377 @@
+/* === Import Font === */
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville&display=swap');
+
+/* === Box Sizing Reset === */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* === Base Styles === */
+body {
+  font-family: 'Libre Baskerville', serif;
+  color: #222;
+  background-color: #fdf6e3;
+  background-image:
+    url('https://www.transparenttextures.com/patterns/paper-fibers.png'),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.02),
+      rgba(0, 0, 0, 0.02) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  background-blend-mode: multiply;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+/* === Container for consistent layout width === */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  width: 100%;
+}
+
+/* === Layout Structure === */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.app-header {
+  padding: 20px 0;
+  width: 100%;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0; /* Removed 5% padding for consistent width */
+  position: relative;
+}
+
+.app-footer {
+  height: 40px;
+  width: 100%;
+  padding: 10px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* === Status and Error === */
+.status-indicators {
+  height: 24px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.status-badge.success,
+.status-badge.info {
+  color: green;
+}
+
+.error-container {
+  height: 30px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.error-message {
+  color: red;
+  font-size: 14px;
+}
+
+.controls-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  min-height: 120px;
+  position: relative;
+}
+
+/* === Events Section === */
+.events-section {
+  width: 100%;
+  min-height: 200px;
+  margin-bottom: 20px;
+}
+
+/* === Event Card Styles === */
+.event {
+  position: relative;
+  padding: 20px 24px;
+  margin: 0 auto 30px auto;
+  max-width: 100%;
+  width: 100%;
+  border: 6px double #222;
+  border-radius: 16px;
+  background-color: #fff8e1;
+  box-shadow:
+    inset 0 0 0 2px #000,
+    4px 4px 0 #ccc;
+  font-family: 'Libre Baskerville', serif;
+  color: #222;
+  text-align: left;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.event:hover {
+  box-shadow:
+    inset 0 0 0 2px #000,
+    6px 6px 0 #999;
+  transform: scale(1.01);
+}
+
+.event::before,
+.event::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/98/Ornament_corner_01.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.event::before {
+  top: 4px;
+  left: 4px;
+}
+
+.event::after {
+  bottom: 4px;
+  right: 4px;
+  transform: rotate(180deg);
+}
+
+.event-title {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  border-bottom: 2px dashed #444;
+  padding-bottom: 5px;
+}
+
+/* === Charts Section === */
+.charts-section {
+  width: 100%;
+  min-height: 500px;
+  margin: 20px 0;
+}
+
+.charts-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: space-between;
+  min-height: 500px;
+}
+
+/* === Chart Container Styles === */
+.chart-container {
+  flex: 1 1 45%;
+  min-width: 300px;
+  height: 500px;
+  padding: 20px 24px;
+  margin: 0 auto;
+  max-width: 100%;
+  width: 100%;
+  border: 6px double #222;
+  border-radius: 16px;
+  background-color: #fff8e1;
+  box-shadow:
+    inset 0 0 0 2px #000,
+    4px 4px 0 #ccc;
+  font-family: 'Libre Baskerville', serif;
+  overflow: hidden;
+  position: relative;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.chart-container::before,
+.chart-container::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/98/Ornament_corner_01.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.chart-container::before {
+  top: 4px;
+  left: 4px;
+}
+
+.chart-container::after {
+  bottom: 4px;
+  right: 4px;
+  transform: rotate(180deg);
+}
+
+.charts-placeholder {
+  width: 100%;
+  height: 500px;
+}
+
+/* === City Search === */
+#city-search {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 250px;
+  margin: 0 auto 20px auto;
+}
+
+.city {
+  width: 250px;
+}
+
+.suggestions {
+  width: 250px;
+  position: absolute;
+  top: 45px;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  background-color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.suggestions > li {
+  text-align: left;
+  padding: 8px 6px 8px 10px;
+  background-color: #eee;
+  cursor: default;
+}
+
+.suggestions > li:last-child {
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.suggestions > li:hover {
+  background-color: #bcdcdb;
+}
+
+/* === Event List + Buttons === */
+ul {
+  padding: 0;
+  list-style: none;
+  margin: 0;
+}
+
+.details-btn {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  background-color: lightgreen;
+}
+
+/* === Inputs === */
+input[type="text"],
+input[type="number"] {
+  padding: 8px 6px 8px 10px;
+  border-radius: 4px;
+  outline: none;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  line-height: 20px;
+  align-self: center;
+  height: 38px;
+  margin-bottom: 20px;
+}
+
+/* === Alerts === */
+.alerts-container {
+  position: fixed;
+  top: 0px;
+  left: 20px;
+  width: 250px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.alerts-container > * {
+  pointer-events: auto;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  .charts-grid {
+    flex-direction: column;
+  }
+
+  .chart-container {
+    flex: 1 1 100%;
+    min-height: 400px;
+  }
+
+  .charts-section {
+    min-height: 900px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 10px 2%;
+    height: 80px;
+  }
+
+  .app-footer {
+    height: 30px;
+    padding: 5px 2%;
+  }
+
+  .controls-section {
+    min-height: 80px;
+  }
+
+  .charts-section {
+    min-height: 600px;
+  }
+}
