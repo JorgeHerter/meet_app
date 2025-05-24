@@ -423,8 +423,14 @@ const isLocalMode = () => {
 
 // Utility: Check if in mock mode
 const isMockMode = () => {
-  return window.location.search.includes('mock=true') || 
-         localStorage.getItem('mock') === 'true';
+  const isDev = window.location.hostname === 'localhost' || import.meta.env.MODE === 'development';
+
+  if (!isDev) return false; // 🔒 Force live data in production
+
+  return (
+    window.location.search.includes('mock=true') || 
+    localStorage.getItem('mock') === 'true'
+  );
 };
 
 // Utility: Extract unique locations
