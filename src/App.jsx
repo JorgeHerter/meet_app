@@ -265,11 +265,18 @@ const App = () => {
             currentNOE={currentNOE}
             setCurrentNOE={setCurrentNOE}
           />
-          <EventList events={events} />
-          <div className="charts-container">
-            <EventGenresChart events={events} />
-            <CityEventsChart events={events} allLocations={allLocations} />
+          
+          <div className="charts-section">
+          <div className="chart-container">
+          <EventGenresChart events={events} />
           </div>
+          <div className="chart-container">
+          <CityEventsChart events={events} allLocations={allLocations} />
+          </div>
+          </div>
+
+          
+          <EventList events={events} />
         </>
       )}
   

@@ -1,15 +1,21 @@
-/* === Import Font === */
+/* === Fonts === */
 @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville&display=swap');
 
-/* === Box Sizing Reset === */
-*, *::before, *::after {
+/* === Reset + Base === */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-/* === Base Styles === */
 body {
   font-family: 'Libre Baskerville', serif;
+  margin: 0;
+  padding: 0;
   color: #222;
+  text-align: center;
+
+  /* Newsprint-style background */
   background-color: #fdf6e3;
   background-image:
     url('https://www.transparenttextures.com/patterns/paper-fibers.png'),
@@ -21,12 +27,16 @@ body {
       transparent 4px
     );
   background-blend-mode: multiply;
-  margin: 0;
-  padding: 0;
-  text-align: center;
 }
 
-/* === Container for consistent layout width === */
+/* === Layout === */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -34,123 +44,59 @@ body {
   width: 100%;
 }
 
-/* === Layout Structure === */
-.app-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  width: 100%;
-  overflow-x: hidden;
-}
-
-.app-header {
+.app-header,
+.app-footer {
   padding: 20px 0;
-  width: 100%;
-  height: 120px;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  position: relative;
-}
-
-.app-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  padding: 0; /* Removed 5% padding for consistent width */
-  position: relative;
 }
 
 .app-footer {
   height: 40px;
-  width: 100%;
-  padding: 10px 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
-/* === Status and Error === */
-.status-indicators {
-  height: 24px;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin: 10px 0;
-}
-
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.status-badge.success,
-.status-badge.info {
-  color: green;
-}
-
-.error-container {
-  height: 30px;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.error-message {
-  color: red;
-  font-size: 14px;
-}
-
-.controls-section {
-  width: 100%;
-  display: flex;
+.app-header {
+  height: 120px;
   flex-direction: column;
-  align-items: center;
-  margin-bottom: 20px;
-  min-height: 120px;
-  position: relative;
 }
 
-/* === Events Section === */
-.events-section {
+.app-main {
+  flex: 1;
+  padding: 0;
   width: 100%;
-  min-height: 200px;
-  margin-bottom: 20px;
 }
 
-/* === Event Card Styles === */
+/* === Event Card === */
 .event {
   position: relative;
-  padding: 20px 24px;
-  margin: 0 auto 30px auto;
+  padding: 24px;
+  margin: 0 auto 30px;
   max-width: 100%;
   width: 100%;
+
+  background-color: #fff8e1;
+  color: #222;
+  text-align: left;
+
   border: 6px double #222;
   border-radius: 16px;
-  background-color: #fff8e1;
+
   box-shadow:
     inset 0 0 0 2px #000,
     4px 4px 0 #ccc;
-  font-family: 'Libre Baskerville', serif;
-  color: #222;
-  text-align: left;
+
   overflow: hidden;
-  transition: all 0.3s ease;
-  overflow-wrap: break-word;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
   word-wrap: break-word;
 }
 
 .event:hover {
+  transform: scale(1.01);
   box-shadow:
     inset 0 0 0 2px #000,
     6px 6px 0 #999;
-  transform: scale(1.01);
 }
 
 .event::before,
@@ -188,11 +134,11 @@ body {
   padding-bottom: 5px;
 }
 
-/* === Charts Section === */
+/* === Charts === */
 .charts-section {
   width: 100%;
-  min-height: 500px;
   margin: 20px 0;
+  min-height: 500px;
 }
 
 .charts-grid {
@@ -200,28 +146,25 @@ body {
   flex-wrap: wrap;
   gap: 20px;
   justify-content: space-between;
-  min-height: 500px;
 }
 
-/* === Chart Container Styles === */
 .chart-container {
   flex: 1 1 45%;
   min-width: 300px;
   height: 500px;
-  padding: 20px 24px;
+  padding: 20px;
   margin: 0 auto;
-  max-width: 100%;
-  width: 100%;
+  background-color: #fff8e1;
+
   border: 6px double #222;
   border-radius: 16px;
-  background-color: #fff8e1;
+
   box-shadow:
     inset 0 0 0 2px #000,
     4px 4px 0 #ccc;
-  font-family: 'Libre Baskerville', serif;
-  overflow: hidden;
+
   position: relative;
-  overflow-wrap: break-word;
+  overflow: hidden;
   word-wrap: break-word;
 }
 
@@ -249,24 +192,43 @@ body {
   transform: rotate(180deg);
 }
 
-.charts-placeholder {
-  width: 100%;
-  height: 500px;
-}
-
-/* === City Search === */
-#city-search {
+/* === UI Elements === */
+.status-indicators {
   display: flex;
-  flex-direction: column;
-  position: relative;
-  width: 250px;
-  margin: 0 auto 20px auto;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 0;
 }
 
-.city {
-  width: 250px;
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 
+.status-badge.success,
+.status-badge.info {
+  color: green;
+}
+
+.error-message {
+  color: red;
+  font-size: 14px;
+}
+
+/* === Inputs === */
+input[type="text"],
+input[type="number"] {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  height: 38px;
+  outline: none;
+}
+
+/* === Suggestions Dropdown === */
 .suggestions {
   width: 250px;
   position: absolute;
@@ -279,51 +241,25 @@ body {
 }
 
 .suggestions > li {
-  text-align: left;
-  padding: 8px 6px 8px 10px;
+  padding: 8px 10px;
   background-color: #eee;
-  cursor: default;
-}
-
-.suggestions > li:last-child {
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
+  cursor: pointer;
 }
 
 .suggestions > li:hover {
   background-color: #bcdcdb;
 }
 
-/* === Event List + Buttons === */
-ul {
-  padding: 0;
-  list-style: none;
-  margin: 0;
-}
-
+/* === Buttons === */
 .details-btn {
   position: absolute;
   right: 5px;
   bottom: 5px;
   padding: 5px 8px;
   border-radius: 4px;
-  outline: none;
-  cursor: pointer;
   background-color: lightgreen;
-}
-
-/* === Inputs === */
-input[type="text"],
-input[type="number"] {
-  padding: 8px 6px 8px 10px;
-  border-radius: 4px;
+  cursor: pointer;
   outline: none;
-  border: 1px solid #ccc;
-  font-size: 14px;
-  line-height: 20px;
-  align-self: center;
-  height: 38px;
-  margin-bottom: 20px;
 }
 
 /* === Alerts === */
@@ -358,13 +294,13 @@ input[type="number"] {
 
 @media (max-width: 480px) {
   .app-header {
-    padding: 10px 2%;
+    padding: 10px;
     height: 80px;
   }
 
   .app-footer {
     height: 30px;
-    padding: 5px 2%;
+    padding: 5px;
   }
 
   .controls-section {

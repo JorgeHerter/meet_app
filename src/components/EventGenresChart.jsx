@@ -31,7 +31,7 @@ const EventGenresChart = ({ events }) => {
 
   const renderCustomizedLabel = ({ cx, cy, midAngle, outerRadius, percent, index }) => {
     const RADIAN = Math.PI / 180;
-    const radius = outerRadius * 1.07; // Adjust radius to make the circle smaller
+    const radius = outerRadius * 1.07;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -39,10 +39,10 @@ const EventGenresChart = ({ events }) => {
       <text
         x={x}
         y={y}
-        fill="#000000" // Change label color to black for better visibility
+        fill="#000000"
         textAnchor={x > cx ? 'start' : 'end'}
         dominantBaseline="central"
-        fontSize={14} // Increase font size for better readability
+        fontSize={14}
       >
         {`${genres[index]} ${(percent * 100).toFixed(0)}%`}
       </text>
@@ -50,14 +50,14 @@ const EventGenresChart = ({ events }) => {
   };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height={400}>
       <PieChart>
         <Pie
           data={data}
           dataKey="value"
           nameKey="name"
-          outerRadius={120} // Reduced the outer radius to make the pie smaller
-          innerRadius={40}  // Optional: You can adjust the inner radius as well if you want a donut shape
+          outerRadius={120}
+          innerRadius={40}
           labelLine={false}
           label={renderCustomizedLabel}
         >
