@@ -9,27 +9,24 @@ import {
 
 const EventGenresChart = ({ events }) => {
   const [data, setData] = useState([]);
+
   const genres = ['React', 'JavaScript', 'Node', 'jQuery', 'Angular'];
   const colors = ['#DD0000', '#00DD00', '#0000DD', '#DDDD00', '#DD00DD'];
 
   useEffect(() => {
-    const getData = () => {
-      const data = genres.map((genre) => {
-        const filteredEvents = events.filter(event =>
-          event.summary && event.summary.includes(genre)
-        );
-        return {
-          name: genre,
-          value: filteredEvents.length
-        };
-      });
-      return data;
-    };
+    if (!events) return;
 
-    setData(getData());
+    const genreData = genres.map((genre) => {
+      const count = events.filter(
+        (event) => event.summary && event.summary.includes(genre)
+      ).length;
+      return { name: genre, value: count };
+    });
+
+    setData(genreData);
   }, [events]);
 
-  const renderCustomizedLabel = ({ cx, cy, midAngle, outerRadius, percent, index }) => {
+  const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, percent, index }) => {
     const RADIAN = Math.PI / 180;
     const radius = outerRadius * 1.07;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -59,10 +56,13 @@ const EventGenresChart = ({ events }) => {
           outerRadius={120}
           innerRadius={40}
           labelLine={false}
-          label={renderCustomizedLabel}
+          label={renderCustomLabel} // fixed name here
         >
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+            <Cell
+              key={`cell-${index}`}
+              fill={colors[index % colors.length]}
+            />
           ))}
         </Pie>
         <Legend verticalAlign="bottom" align="center" />

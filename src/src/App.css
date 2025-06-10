@@ -1,0 +1,316 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville&display=swap');
+
+/* === Reset + Base === */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Libre Baskerville', serif;
+  margin: 0;
+  padding: 0;
+  color: #222;
+  text-align: center;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+
+  background-color: #fdf6e3;
+  background-image:
+    url('https://www.transparenttextures.com/patterns/paper-fibers.png'),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.02),
+      rgba(0, 0, 0, 0.02) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  background-blend-mode: multiply;
+}
+
+/* === Layout === */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  width: 100%;
+}
+
+.app-header,
+.app-footer {
+  padding: 20px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.app-footer {
+  height: 40px;
+}
+
+.app-header {
+  height: 120px;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+  padding: 0;
+  width: 100%;
+}
+
+/* === Event Card === */
+.event {
+  position: relative;
+  padding: 24px;
+  margin: 0 auto 30px;
+  width: 100%;
+  background-color: #fff8e1;
+  color: #222;
+  text-align: left;
+
+  border: 6px double #222;
+  border-radius: 16px;
+
+  box-shadow:
+    inset 0 0 0 2px #000,
+    4px 4px 0 #ccc;
+
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  word-wrap: break-word;
+}
+
+.event:hover {
+  transform: scale(1.01);
+  box-shadow:
+    inset 0 0 0 2px #000,
+    6px 6px 0 #999;
+}
+
+.event::before,
+.event::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/98/Ornament_corner_01.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.event::before {
+  top: 4px;
+  left: 4px;
+}
+
+.event::after {
+  bottom: 4px;
+  right: 4px;
+  transform: rotate(180deg);
+}
+
+.event-title {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  border-bottom: 2px dashed #444;
+  padding-bottom: 5px;
+}
+
+/* === Charts === */
+.charts-section {
+  width: 100%;
+  margin: 20px 0;
+  min-height: 500px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.charts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  align-items: center;
+}
+
+.chart-container {
+  width: 90%;
+  max-width: 600px;
+  height: 500px;
+  padding: 20px;
+  background-color: #fff8e1;
+
+  border: 6px double #222;
+  border-radius: 16px;
+
+  box-shadow:
+    inset 0 0 0 2px #000,
+    4px 4px 0 #ccc;
+
+  position: relative;
+  overflow: hidden;
+  word-wrap: break-word;
+}
+
+.chart-container::before,
+.chart-container::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/98/Ornament_corner_01.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.chart-container::before {
+  top: 4px;
+  left: 4px;
+}
+
+.chart-container::after {
+  bottom: 4px;
+  right: 4px;
+  transform: rotate(180deg);
+}
+
+/* === UI Elements === */
+.status-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.status-badge.success,
+.status-badge.info {
+  color: green;
+}
+
+.error-message {
+  color: red;
+  font-size: 14px;
+}
+
+/* === Inputs === */
+input[type="text"],
+input[type="number"] {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  height: 38px;
+  outline: none;
+}
+
+/* === Suggestions Dropdown === */
+.suggestions {
+  width: 250px;
+  position: absolute;
+  top: 45px;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  background-color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.suggestions > li {
+  padding: 8px 10px;
+  background-color: #eee;
+  cursor: pointer;
+}
+
+.suggestions > li:hover {
+  background-color: #bcdcdb;
+}
+
+/* === Buttons === */
+.details-btn {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background-color: lightgreen;
+  cursor: pointer;
+  outline: none;
+}
+
+/* === Alerts === */
+.alerts-container {
+  position: fixed;
+  top: 0px;
+  left: 20px;
+  width: 250px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.alerts-container > * {
+  pointer-events: auto;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  .chart-container {
+    width: 95%;
+    min-height: 400px;
+  }
+
+  .charts-section {
+    min-height: 900px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 10px;
+    height: 80px;
+  }
+
+  .app-footer {
+    height: 30px;
+    padding: 5px;
+  }
+
+  .controls-section {
+    min-height: 80px;
+  }
+
+  .charts-section {
+    min-height: 600px;
+  }
+}

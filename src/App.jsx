@@ -95,7 +95,7 @@ const App = () => {
 };
 
 export default App;*/
-import React, { useEffect, useState } from 'react';
+/*import React, { useEffect, useState } from 'react';
 import CitySearch from './components/CitySearch';
 import EventList from './components/EventList';
 import NumberOfEvents from './components/NumberOfEvents';
@@ -137,7 +137,7 @@ try {
 */
 // ============================================
 
-const App = () => {
+/*const App = () => {
   const [events, setEvents] = useState([]);
   const [currentNOE, setCurrentNOE] = useState(32);
   const [allLocations, setAllLocations] = useState([]);
@@ -265,6 +265,7 @@ const App = () => {
             currentNOE={currentNOE}
             setCurrentNOE={setCurrentNOE}
           />
+<<<<<<< HEAD
           
           <div className="charts-section">
           <div className="chart-container">
@@ -277,6 +278,22 @@ const App = () => {
 
           
           <EventList events={events} />
+=======
+          <EventList events={events} />
+  
+          {events.length > 0 && allLocations.length > 0 && (
+            <div className="charts-wrapper">
+              <div className="charts-container">
+                <div className="chart-wrapper">
+                  <EventGenresChart events={events} />
+                </div>
+                <div className="chart-wrapper">
+                  <CityEventsChart events={events} allLocations={allLocations} />
+                </div>
+              </div>
+            </div>
+          )}
+>>>>>>> 3576404 (layout fix)
         </>
       )}
   
@@ -287,31 +304,37 @@ const App = () => {
   );  
 };
 
-export default App;
+export default App;*/
 
-/*import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import CitySearch from './components/CitySearch';
 import EventList from './components/EventList';
 import NumberOfEvents from './components/NumberOfEvents';
 import { extractLocations, getEvents, isAuthenticated, startOAuthProcess, isLocalMode, isMockMode } from './api';
 import './App.css';
 import { InfoAlert, ErrorAlert } from './components/Alert';
+import EventGenresChart from './components/EventGenresChart';
+import CityEventsChart from './components/CityEventsChart';
 
 const App = () => {
+  // === State Management ===
   const [events, setEvents] = useState([]);
   const [allEvents, setAllEvents] = useState([]);
   const [currentNOE, setCurrentNOE] = useState(32);
   const [allLocations, setAllLocations] = useState([]);
   const [currentCity, setCurrentCity] = useState('See all cities');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true); 
+  const [error, setError] = useState(null);
   const [authenticated, setAuthenticated] = useState(false);
-  const [infoAlert, setInfoAlert] = useState('');
+  const [infoAlert, setInfoAlert] = useState("");
+  const [errorAlert, setErrorAlert] = useState("");
 
+  // Static flags - calculated once
   const mockModeActive = isLocalMode() || isMockMode();
 
+  // === Authentication Process ===
   useEffect(() => {
-    const initializeApp = async () => {
+    async function handleAuthentication() {
       if (mockModeActive) {
         localStorage.setItem('mock', 'true');
         sessionStorage.setItem('access_token', 'test-token');
@@ -320,106 +343,154 @@ const App = () => {
       }
 
       try {
-        const isAuth = await isAuthenticated();
-        if (!isAuth) {
-          await startOAuthProcess();
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+
+        if (code) {
+          const response = await fetch(`https://tlhsvksy0f.execute-api.us-east-1.amazonaws.com/dev/api/token/${encodeURIComponent(code)}`);
+          const data = await response.json();
+
+          if (data.access_token) {
+            sessionStorage.setItem('access_token', data.access_token);
+            setAuthenticated(true);
+            window.history.replaceState({}, document.title, '/');
+          } else {
+            throw new Error('No access token in response');
+          }
         } else {
-          setAuthenticated(true);
+          const isAuth = await isAuthenticated();
+          if (!isAuth) {
+            await startOAuthProcess();
+          } else {
+            setAuthenticated(true);
+          }
         }
       } catch (authError) {
         console.error("Authentication error:", authError);
         setError('Authentication failed. Please try again.');
       }
-    };
+    }
 
-    initializeApp();
-  }, [mockModeActive]);
+    handleAuthentication();
+  }, []); // Only run once on component mount
 
+  // === Initial Data Loading ===
   useEffect(() => {
-    if (authenticated) {
-      fetchAllEvents();
+    if (!authenticated) return;
+    
+    async function loadInitialData() {
+      try {
+        setLoading(true);
+        const fetchedEvents = await getEvents();
+        
+        // Store all events and locations first
+        setAllEvents(fetchedEvents);
+        setAllLocations(extractLocations(fetchedEvents));
+        
+        // Then filter for display
+        setEvents(fetchedEvents.slice(0, currentNOE));
+      } catch (err) {
+        console.error('Initial data loading error:', err);
+        setError('Failed to load events. Please try again later.');
+        setErrorAlert('Failed to load events. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [authenticated]);
-
+    
+    loadInitialData();
+  }, [authenticated]); // Only depends on authentication state
+  
+  // === Handle Filtering (without refetching) ===
   useEffect(() => {
-    if (allEvents.length > 0) {
-      filterEvents();
-    }
-  }, [currentCity, currentNOE, allEvents]);
-
-  const fetchAllEvents = async () => {
-    try {
-      setLoading(true);
-      const fetchedEvents = await getEvents();
-      setAllEvents(fetchedEvents);
-      setAllLocations(extractLocations(fetchedEvents));
-    } catch (err) {
-      console.error("Error fetching events:", err);
-      setError('Failed to load events. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterEvents = (eventsToFilter = allEvents) => {
-    try {
-      if (!eventsToFilter || eventsToFilter.length === 0) {
-        setEvents([]);
-        return;
-      }
-
-      let filteredEvents = eventsToFilter;
-
-      if (currentCity !== 'See all cities') {
-        filteredEvents = eventsToFilter.filter((event) => {
-          const eventLocation = event.location?.trim().toLowerCase() || '';
-          const searchCity = currentCity.trim().toLowerCase();
-          return eventLocation.includes(searchCity) || searchCity.includes(eventLocation);
-        });
-      }
-
-      setEvents(filteredEvents.slice(0, currentNOE));
-    } catch (err) {
-      console.error("Error filtering events:", err);
-      setError('Error filtering events. Please try a different search.');
-    }
-  };
-
+    if (allEvents.length === 0) return;
+    
+    // Filter existing events based on city and number
+    const filteredEvents = currentCity === 'See all cities'
+      ? [...allEvents] // Create a new array to ensure state update
+      : allEvents.filter(event => 
+          event.location?.toLowerCase().trim() === currentCity.toLowerCase().trim()
+        );
+        
+    setEvents(filteredEvents.slice(0, currentNOE));
+  }, [currentCity, currentNOE, allEvents]); // Only run when filters change
+  
+  // === Main Render ===
   return (
-    <div className="App">
-      <h1>Meet App</h1>
+    <div className="app-container">
+      {/* Fixed header section */}
+      <header className="app-header">
+        <h1>Meet App</h1>
+        
+        <div className="status-indicators">
+          {authenticated && <div className="status-badge success">🟢 Authenticated</div>}
+          {/*mockModeActive && <div className="status-badge info">✅ Mock Mode</div>*/}
+        </div>
+      </header>
 
-      <div style={{ marginBottom: '1rem' }}>
-        {authenticated && <div data-testid="auth-status" style={{ color: 'green' }}>🟢 Authenticated</div>}
-        {mockModeActive && <div style={{ color: 'green' }} data-testid="mock-status">✅ Mock Mode Enabled</div>}
-      </div>
-
-      <div className="alerts-container">
-        {infoAlert && <InfoAlert text={infoAlert} />}
-        {error && <ErrorAlert text={error} />}
-      </div>
-
-      {loading ? (
-        <div data-testid="loading">Loading events...</div>
-      ) : events.length === 0 ? (
-        <div data-testid="no-events">No events found for "{currentCity}". Try another search.</div>
-      ) : (
-        <>
+      {/* Main content with fixed dimensions */}
+      <main className="app-main">
+        {/* Alerts are positioned fixed, won't affect layout */}
+        <div className="alerts-container">
+          {infoAlert && <InfoAlert text={infoAlert} />}
+          {errorAlert && <ErrorAlert text={errorAlert} />}
+        </div>
+        
+        {/* Error display area */}
+        <div className="error-container">
+          {error && <div className="error-message">{error}</div>}
+        </div>
+        
+        {/* Controls section - always rendered */}
+        <section className="controls-section">
           <CitySearch
-            allLocations={allLocations.length > 0 ? allLocations : ['See all cities']}
+            allLocations={allLocations}
             setCurrentCity={setCurrentCity}
             setInfoAlert={setInfoAlert}
           />
-          <NumberOfEvents currentNOE={currentNOE} setCurrentNOE={setCurrentNOE} />
-          <EventList events={events} />
-        </>
-      )}
+          <NumberOfEvents
+            currentNOE={currentNOE}
+            setCurrentNOE={setCurrentNOE}
+          />
+        </section>
 
-      <div style={{ fontSize: '10px', color: 'gray', marginTop: '20px' }}>
-        Environment: {process.env.NODE_ENV || 'not set'}
-      </div>
+         {/* Charts section - always rendered with conditional content */}
+         <section className="charts-section">
+          {!loading && events.length > 0 && allLocations.length > 0 ? (
+            <div className="charts-grid">
+              <div className="chart-container">
+                <EventGenresChart events={events} />
+              </div>
+              <div className="chart-container">
+                <CityEventsChart events={events} allLocations={allLocations} />
+              </div>
+            </div>
+          ) : (
+            <div className="charts-placeholder"></div>
+          )}
+        </section>
+        
+        {/* Events list with placeholder */}
+        <section className="events-section">
+          {loading ? (
+            <div className="loading-placeholder">Loading events...</div>
+          ) : events.length === 0 ? (
+            <div className="empty-placeholder">No events found.</div>
+          ) : (
+            <EventList events={events} />
+          )}
+        </section>
+        
+        {/* Footer section */}
+        <footer className="app-footer">
+          <div className="environment-info">
+            Environment: {process.env.NODE_ENV || 'not set'}
+          </div>
+        </footer>
+      </main>
+
     </div>
   );
 };
 
-export default App;*/
+export default App;

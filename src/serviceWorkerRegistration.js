@@ -16,7 +16,8 @@ const isLocalhost = Boolean(
 );
 
 export function register(config) {
-  if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  // Removed the PROD check - let main.jsx handle environment logic
+  if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       const swUrl = `/service-worker.js`; // ✅ Make sure this matches the filename in /public
 
@@ -30,20 +31,15 @@ export function register(config) {
       }
     });
   } else {
-    console.log(
-      '⏩ Service Worker registration skipped:',
-      !('serviceWorker' in navigator)
-        ? 'Browser doesn\'t support it.'
-        : 'Not running in production.'
-    );
+    console.log('⏩ Service Worker registration skipped: Browser doesn\'t support it.');
   }
 }
 
 function registerValidSW(swUrl, config) {
   navigator.serviceWorker
-    .register(swUrl,)
+    .register(swUrl)
     .then((registration) => {
-      //console.log('✅ ServiceWorker registered with scope:', registration.scope);
+      console.log('✅ ServiceWorker registered with scope:', registration.scope);
 
       registration.onupdatefound = () => {
         const installingWorker = registration.installing;
@@ -53,11 +49,11 @@ function registerValidSW(swUrl, config) {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
               console.log('🔄 New content is available and will be used after tabs are closed.');
-
+              
               if (config?.onUpdate) config.onUpdate(registration);
             } else {
               console.log('📦 Content is cached for offline use.');
-
+              
               if (config?.onSuccess) config.onSuccess(registration);
             }
           }
@@ -91,12 +87,22 @@ function checkValidServiceWorker(swUrl, config) {
 
 export function unregister() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready
+    return navigator.serviceWorker.ready
       .then((registration) => {
-        registration.unregister();
+        console.log('🗑️ Unregistering service worker...');
+        return registration.unregister();
+      })
+      .then((success) => {
+        if (success) {
+          console.log('✅ Service worker unregistered successfully');
+        }
+        return success;
       })
       .catch((error) => {
         console.error('❌ Error during service worker unregister:', error);
+        throw error;
       });
   }
+  return Promise.resolve(true);
 }
+

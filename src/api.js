@@ -423,8 +423,16 @@ const isLocalMode = () => {
 
 // Utility: Check if in mock mode
 const isMockMode = () => {
-  return window.location.search.includes('mock=true') || 
-         localStorage.getItem('mock') === 'true';
+  const isProd = import.meta.env.MODE === 'production';
+  
+  // ✅ Always return false in production — no mock mode allowed
+  if (isProd) return false;
+
+  // 👇 Otherwise allow mock mode via URL or localStorage
+  return (
+    window.location.search.includes('mock=true') || 
+    localStorage.getItem('mock') === 'true'
+  );
 };
 
 // Utility: Extract unique locations

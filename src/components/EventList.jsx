@@ -45,13 +45,13 @@ const EventList = ({ events = [] }) => {
         ) : (
           <ul id="event-list" data-testid="event-list">
             {validEvents.map(event => (
-              <li
+              <ul
                 key={event.id}
                 role="listitem"
                 data-testid="event-item"
               >
                 <Event event={event} />
-              </li>
+              </ul>
             ))}
           </ul>
         )}

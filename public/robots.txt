@@ -1,0 +1,12 @@
+# robots.txt for Meet App
+
+User-agent: *
+Allow: /
+
+# Disallow crawling of certain folders (optional)
+Disallow: /node_modules/
+Disallow: /src/
+Disallow: /tests/
+
+# Sitemap (add your deployed domain if available)
+# Sitemap: https://yourdomain.com/sitemap.xml
