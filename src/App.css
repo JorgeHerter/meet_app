@@ -154,13 +154,23 @@ body {
   transform: rotate(180deg);
 }
 
-/* === Event Card === */
+/* === Events List & Cards === */
+.events-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
 .event {
   position: relative;
   padding: 24px;
   margin: 0 auto 30px;
   width: 100%;
   max-width: 1000px;
+
   background-color: #fff8e1;
   color: #222;
   text-align: left;
@@ -172,9 +182,12 @@ body {
     inset 0 0 0 2px #000,
     4px 4px 0 #ccc;
 
-  overflow: hidden;
+  overflow: visible; /* allow vertical expansion and prevent clipping */
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   word-wrap: break-word;
+
+  display: flex;
+  flex-direction: column; /* stack content vertically */
 }
 
 .event:hover {
@@ -318,6 +331,10 @@ input[type="number"] {
   .charts-section {
     min-height: 900px;
   }
+
+  .event {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -338,4 +355,9 @@ input[type="number"] {
   .charts-section {
     min-height: 600px;
   }
+
+  .event {
+    max-width: 100%;
+  }
 }
+
