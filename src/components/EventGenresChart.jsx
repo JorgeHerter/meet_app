@@ -21,14 +21,14 @@ const EventGenresChart = ({ events }) => {
         (event) => event.summary && event.summary.includes(genre)
       ).length;
       return { name: genre, value: count };
-    });
+    }).filter(genre => genre.value > 0); // Filter out 0-value genres for clarity
 
     setData(genreData);
   }, [events]);
 
   const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, percent, index }) => {
     const RADIAN = Math.PI / 180;
-    const radius = outerRadius * 1.07;
+    const radius = outerRadius + 20; // Increase for clearer label placement
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -36,27 +36,27 @@ const EventGenresChart = ({ events }) => {
       <text
         x={x}
         y={y}
-        fill="#000000"
+        fill="#000"
         textAnchor={x > cx ? 'start' : 'end'}
         dominantBaseline="central"
-        fontSize={14}
+        fontSize={13}
       >
-        {`${genres[index]} ${(percent * 100).toFixed(0)}%`}
+        {`${data[index].name} ${(percent * 100).toFixed(0)}%`}
       </text>
     ) : null;
   };
 
   return (
     <ResponsiveContainer width="100%" height={400}>
-      <PieChart>
+      <PieChart margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
         <Pie
           data={data}
           dataKey="value"
           nameKey="name"
-          outerRadius={120}
-          innerRadius={40}
+          outerRadius={110}
+          innerRadius={50}
           labelLine={false}
-          label={renderCustomLabel} // fixed name here
+          label={renderCustomLabel}
         >
           {data.map((entry, index) => (
             <Cell
@@ -65,7 +65,7 @@ const EventGenresChart = ({ events }) => {
             />
           ))}
         </Pie>
-        <Legend verticalAlign="bottom" align="center" />
+        <Legend layout="horizontal" verticalAlign="bottom" align="center" />
       </PieChart>
     </ResponsiveContainer>
   );

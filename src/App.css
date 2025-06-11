@@ -36,10 +36,21 @@ body {
 .app-container {
   display: flex;
   flex-direction: column;
+  align-items: center; /* center children horizontally */
   width: 100%;
   max-width: 1200px;
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+.app-main {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* center contents */
+  padding: 0 20px;
+  box-sizing: border-box;
 }
 
 .container {
@@ -55,6 +66,8 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
+  width: 100%;
 }
 
 .app-footer {
@@ -63,13 +76,82 @@ body {
 
 .app-header {
   height: 120px;
-  flex-direction: column;
 }
 
-.app-main {
-  flex: 1;
-  padding: 0;
+/* === Charts === */
+.charts-section {
   width: 100%;
+  margin: 20px 0;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.charts-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 20px;
+  width: 100%;
+  justify-content: center;
+  align-items: stretch;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.chart-container {
+  flex: 1 1 45%;
+  min-width: 400px;
+  max-width: 600px;
+  height: 500px;
+  padding: 20px;
+  background-color: #fff8e1;
+
+  border: 6px double #222;
+  border-radius: 16px;
+
+  box-shadow:
+    inset 0 0 0 2px #000,
+    4px 4px 0 #ccc;
+
+  position: relative;
+  overflow: visible;
+  word-wrap: break-word;
+
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chart-container:hover {
+  transform: scale(1.01);
+  box-shadow:
+    inset 0 0 0 2px #000,
+    6px 6px 0 #999;
+}
+
+.chart-container::before,
+.chart-container::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/98/Ornament_corner_01.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.chart-container::before {
+  top: 4px;
+  left: 4px;
+}
+
+.chart-container::after {
+  bottom: 4px;
+  right: 4px;
+  transform: rotate(180deg);
 }
 
 /* === Event Card === */
@@ -78,6 +160,7 @@ body {
   padding: 24px;
   margin: 0 auto 30px;
   width: 100%;
+  max-width: 1000px;
   background-color: #fff8e1;
   color: #222;
   text-align: left;
@@ -136,69 +219,6 @@ body {
   padding-bottom: 5px;
 }
 
-/* === Charts === */
-.charts-section {
-  width: 100%;
-  margin: 20px 0;
-  min-height: 500px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.charts-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
-  align-items: center;
-}
-
-.chart-container {
-  width: 90%;
-  max-width: 600px;
-  height: 500px;
-  padding: 20px;
-  background-color: #fff8e1;
-
-  border: 6px double #222;
-  border-radius: 16px;
-
-  box-shadow:
-    inset 0 0 0 2px #000,
-    4px 4px 0 #ccc;
-
-  position: relative;
-  overflow: hidden;
-  word-wrap: break-word;
-}
-
-.chart-container::before,
-.chart-container::after {
-  content: '';
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/98/Ornament_corner_01.svg');
-  background-size: contain;
-  background-repeat: no-repeat;
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.chart-container::before {
-  top: 4px;
-  left: 4px;
-}
-
-.chart-container::after {
-  bottom: 4px;
-  right: 4px;
-  transform: rotate(180deg);
-}
-
 /* === UI Elements === */
 .status-indicators {
   display: flex;
@@ -221,6 +241,7 @@ body {
 .error-message {
   color: red;
   font-size: 14px;
+  text-align: center;
 }
 
 /* === Inputs === */
@@ -285,8 +306,12 @@ input[type="number"] {
 
 /* === Responsive === */
 @media (max-width: 768px) {
+  .charts-grid {
+    flex-direction: column;
+  }
+
   .chart-container {
-    width: 95%;
+    width: 100%;
     min-height: 400px;
   }
 

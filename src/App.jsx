@@ -265,7 +265,6 @@ try {
             currentNOE={currentNOE}
             setCurrentNOE={setCurrentNOE}
           />
-<<<<<<< HEAD
           
           <div className="charts-section">
           <div className="chart-container">
@@ -278,22 +277,6 @@ try {
 
           
           <EventList events={events} />
-=======
-          <EventList events={events} />
-  
-          {events.length > 0 && allLocations.length > 0 && (
-            <div className="charts-wrapper">
-              <div className="charts-container">
-                <div className="chart-wrapper">
-                  <EventGenresChart events={events} />
-                </div>
-                <div className="chart-wrapper">
-                  <CityEventsChart events={events} allLocations={allLocations} />
-                </div>
-              </div>
-            </div>
-          )}
->>>>>>> 3576404 (layout fix)
         </>
       )}
   
@@ -456,18 +439,18 @@ const App = () => {
 
          {/* Charts section - always rendered with conditional content */}
          <section className="charts-section">
-          {!loading && events.length > 0 && allLocations.length > 0 ? (
-            <div className="charts-grid">
-              <div className="chart-container">
-                <EventGenresChart events={events} />
-              </div>
-              <div className="chart-container">
-                <CityEventsChart events={events} allLocations={allLocations} />
-              </div>
-            </div>
-          ) : (
-            <div className="charts-placeholder"></div>
-          )}
+              {!loading && events.length > 0 && allLocations.length > 0 ? (
+                <div className="charts-grid">
+                  <div className="chart-container">
+                    <EventGenresChart events={events} />
+                  </div>
+                  <div className="chart-container">
+                    <CityEventsChart events={events} allLocations={allLocations} />
+                  </div>
+                </div>
+              ) : (
+                <div className="charts-placeholder"></div>
+              )}
         </section>
         
         {/* Events list with placeholder */}
